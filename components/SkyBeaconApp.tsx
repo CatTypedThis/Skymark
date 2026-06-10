@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Compass, LocateFixed } from "lucide-react";
-import { AuthDialog } from "@/components/auth/AuthDialog";
 import { BeaconDrawer } from "@/components/beacons/BeaconDrawer";
 import { BeaconOverlay } from "@/components/beacons/BeaconOverlay";
 import { ColorPalette } from "@/components/beacons/ColorPalette";
@@ -13,9 +12,6 @@ import { SensorStatusBar } from "@/components/hud/SensorStatusBar";
 import { ToastMessage, ToastViewport } from "@/components/hud/ToastViewport";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import type { AuthUser } from "@/lib/pocketbase/auth-service";
-import { currentAuthUser, signInWithEmail, signOut, signUpWithEmail } from "@/lib/pocketbase/auth-service";
-import { getPocketBase, isPocketBaseNetworkError, pocketBaseUrl } from "@/lib/pocketbase/client";
 import {
   clearAllBeacons,
   createBeacon,
@@ -50,15 +46,9 @@ export function SkyBeaconApp() {
   const camera = useCameraStream();
   const location = useGeolocation();
   const orientation = useOrientation();
-  const pbRef = useRef<ReturnType<typeof getPocketBase> | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [beacons, setBeacons] = useState<BeaconRecord[]>([]);
   const [selectedBeaconId, setSelectedBeaconId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -95,72 +85,30 @@ export function SkyBeaconApp() {
     }, timeout);
   }, []);
 
-  const checkBackendHealth = useCallback(async () => {
+  const refreshBeacons = useCallback(async () => {
     try {
-      const response = await fetch(`${pocketBaseUrl()}/api/health`, { cache: "no-store" });
-      setBackendOnline(response.ok);
-      return response.ok;
-    } catch {
-      setBackendOnline(false);
-      return false;
+      const records = sortBeacons(await listActiveBeacons());
+      setBeacons(records);
+      setSelectedBeaconId((current) => current ?? records[0]?.id ?? null);
+    } catch (error) {
+      showToast({
+        title: "Saved beacons unavailable",
+        detail: error instanceof Error ? error.message : "Saved beacons could not be loaded.",
+      });
     }
-  }, []);
-
-  const refreshBeacons = useCallback(
-    async (authUser = user) => {
-      if (!authUser || !pbRef.current) {
-        setBeacons([]);
-        setSelectedBeaconId(null);
-        return;
-      }
-
-      try {
-        const records = sortBeacons(await listActiveBeacons(pbRef.current));
-        setBackendOnline(true);
-        setBeacons(records);
-        setSelectedBeaconId((current) => current ?? records[0]?.id ?? null);
-      } catch (error) {
-        setBackendOnline(!isPocketBaseNetworkError(error));
-        showToast({
-          title: "PocketBase unavailable",
-          detail: error instanceof Error ? error.message : "Saved beacons could not be loaded.",
-        });
-      }
-    },
-    [showToast, user],
-  );
+  }, [showToast]);
 
   useEffect(() => {
     registerServiceWorker();
     setOnboardingComplete(window.localStorage.getItem(ONBOARDING_KEY) === "true");
-
-    const pb = getPocketBase();
-    pbRef.current = pb;
-    setUser(currentAuthUser(pb));
-
-    const unsubscribe = pb.authStore.onChange(() => {
-      setUser(currentAuthUser(pb));
-    });
-
-    void checkBackendHealth();
+    void refreshBeacons();
 
     return () => {
-      unsubscribe();
       if (toastTimerRef.current) {
         window.clearTimeout(toastTimerRef.current);
       }
     };
-  }, [checkBackendHealth]);
-
-  useEffect(() => {
-    if (authOpen) {
-      void checkBackendHealth();
-    }
-  }, [authOpen, checkBackendHealth]);
-
-  useEffect(() => {
-    void refreshBeacons(user);
-  }, [refreshBeacons, user]);
+  }, [refreshBeacons]);
 
   function completeOnboarding() {
     window.localStorage.setItem(ONBOARDING_KEY, "true");
@@ -220,15 +168,10 @@ export function SkyBeaconApp() {
   }
 
   const saveDraft = useCallback(
-    async (draft: BeaconDraft, authUser: AuthUser) => {
-      if (!pbRef.current) {
-        showToast({ title: "PocketBase unavailable", detail: "The client is not initialized." });
-        return;
-      }
-
+    async (draft: BeaconDraft) => {
       setSaving(true);
       try {
-        const active = sortBeacons(await listActiveBeacons(pbRef.current));
+        const active = sortBeacons(await listActiveBeacons());
         setBeacons(active);
         const slot = nextAvailableSlot(active);
 
@@ -243,19 +186,17 @@ export function SkyBeaconApp() {
           return;
         }
 
-        const created = await createBeacon(pbRef.current, authUser.id, draft, slot);
-        setBackendOnline(true);
+        const created = await createBeacon(draft, slot);
         setBeacons(sortBeacons([...active, created]));
         setSelectedBeaconId(created.id);
         setPendingDraft(null);
         setPreviewActive(false);
         navigator.vibrate?.(45);
-        showToast({ title: "Beacon placed", detail: `${created.name} is now active.` });
+        showToast({ title: "Beacon placed", detail: `${created.name} is now active on this device.` });
       } catch (error) {
-        setBackendOnline(!isPocketBaseNetworkError(error));
         showToast({
           title: "Save failed",
-          detail: error instanceof Error ? error.message : "PocketBase could not save the beacon.",
+          detail: error instanceof Error ? error.message : "The beacon could not be saved on this device.",
         });
       } finally {
         setSaving(false);
@@ -274,81 +215,17 @@ export function SkyBeaconApp() {
       return;
     }
 
-    if (!user) {
-      setPendingDraft(draft);
-      setAuthOpen(true);
-      showToast({
-        title: "Sign in required",
-        detail: "The preview is preserved while you authenticate.",
-      });
-      return;
-    }
-
-    await saveDraft(draft, user);
-  }
-
-  async function handleSignIn(email: string, password: string) {
-    if (!pbRef.current) return;
-    setAuthLoading(true);
-    setAuthError(null);
-
-    try {
-      const authUser = await signInWithEmail(pbRef.current, email, password);
-      setUser(authUser);
-      setBackendOnline(true);
-      setAuthOpen(false);
-      await refreshBeacons(authUser);
-      if (pendingDraft) {
-        await saveDraft(pendingDraft, authUser);
-      }
-    } catch (error) {
-      setBackendOnline(!isPocketBaseNetworkError(error));
-      setAuthError(error instanceof Error ? error.message : "Sign-in failed.");
-    } finally {
-      setAuthLoading(false);
-    }
-  }
-
-  async function handleSignUp(email: string, password: string) {
-    if (!pbRef.current) return;
-    setAuthLoading(true);
-    setAuthError(null);
-
-    try {
-      const authUser = await signUpWithEmail(pbRef.current, email, password);
-      setUser(authUser);
-      setBackendOnline(true);
-      setAuthOpen(false);
-      await refreshBeacons(authUser);
-      if (pendingDraft) {
-        await saveDraft(pendingDraft, authUser);
-      }
-    } catch (error) {
-      setBackendOnline(!isPocketBaseNetworkError(error));
-      setAuthError(error instanceof Error ? error.message : "Sign-up failed.");
-    } finally {
-      setAuthLoading(false);
-    }
-  }
-
-  function handleSignOut() {
-    if (!pbRef.current) return;
-    signOut(pbRef.current);
-    setUser(null);
-    setBeacons([]);
-    setSelectedBeaconId(null);
-    void checkBackendHealth();
-    showToast({ title: "Signed out", detail: "Camera preview remains available." });
+    await saveDraft(draft);
   }
 
   async function handleReplace(beacon: BeaconRecord) {
-    if (!pendingDraft || !user || !pbRef.current) {
+    if (!pendingDraft) {
       return;
     }
 
     setSaving(true);
     try {
-      const updated = await replaceBeacon(pbRef.current, beacon.id, user.id, pendingDraft, beacon.slot);
+      const updated = await replaceBeacon(beacon.id, pendingDraft, beacon.slot);
       setBeacons((current) => sortBeacons(current.map((item) => (item.id === updated.id ? updated : item))));
       setSelectedBeaconId(updated.id);
       setPendingDraft(null);
@@ -360,7 +237,7 @@ export function SkyBeaconApp() {
     } catch (error) {
       showToast({
         title: "Replacement failed",
-        detail: error instanceof Error ? error.message : "PocketBase could not update the beacon.",
+        detail: error instanceof Error ? error.message : "The beacon could not be updated.",
       });
     } finally {
       setSaving(false);
@@ -368,9 +245,8 @@ export function SkyBeaconApp() {
   }
 
   async function handleRename(beacon: BeaconRecord, name: string) {
-    if (!pbRef.current) return;
     try {
-      const updated = await updateBeaconName(pbRef.current, beacon, name);
+      const updated = await updateBeaconName(beacon, name);
       setBeacons((current) => sortBeacons(current.map((item) => (item.id === updated.id ? updated : item))));
     } catch (error) {
       showToast({
@@ -381,9 +257,8 @@ export function SkyBeaconApp() {
   }
 
   async function handleRecolor(beacon: BeaconRecord, color: BeaconColorId) {
-    if (!pbRef.current) return;
     try {
-      const updated = await updateBeaconColor(pbRef.current, beacon.id, color);
+      const updated = await updateBeaconColor(beacon.id, color);
       setBeacons((current) => sortBeacons(current.map((item) => (item.id === updated.id ? updated : item))));
     } catch (error) {
       showToast({
@@ -394,9 +269,8 @@ export function SkyBeaconApp() {
   }
 
   async function handleDelete(beacon: BeaconRecord) {
-    if (!pbRef.current) return;
     try {
-      await softDeleteBeacon(pbRef.current, beacon.id);
+      await softDeleteBeacon(beacon.id);
       setBeacons((current) => current.filter((item) => item.id !== beacon.id));
       setSelectedBeaconId((current) => (current === beacon.id ? null : current));
       showToast(
@@ -405,9 +279,8 @@ export function SkyBeaconApp() {
           detail: beacon.name,
           actionLabel: "Undo",
           onAction: async () => {
-            if (!pbRef.current) return;
             try {
-              const restored = await undoDeleteBeacon(pbRef.current, beacon.id);
+              const restored = await undoDeleteBeacon(beacon.id);
               setBeacons((current) => sortBeacons([...current, restored]));
               setSelectedBeaconId(restored.id);
               setToast(null);
@@ -430,9 +303,8 @@ export function SkyBeaconApp() {
   }
 
   async function handleClearAll() {
-    if (!pbRef.current) return;
     try {
-      await clearAllBeacons(pbRef.current, beacons);
+      await clearAllBeacons(beacons);
       setBeacons([]);
       setSelectedBeaconId(null);
       showToast({ title: "All beacons cleared" });
@@ -470,8 +342,6 @@ export function SkyBeaconApp() {
           heading={orientation.heading}
           stability={orientation.stability}
           confidence={confidence}
-          isAuthenticated={user !== null}
-          backendOnline={backendOnline}
         />
 
         <BeaconOverlay
@@ -496,11 +366,6 @@ export function SkyBeaconApp() {
           <Button variant="secondary" size="icon" onClick={() => void orientation.requestOrientation()} aria-label="Request compass">
             <Compass size={18} />
           </Button>
-          {user ? (
-            <Button variant="secondary" size="icon" onClick={handleSignOut} aria-label="Sign out">
-              <span className="avatar-dot" />
-            </Button>
-          ) : null}
         </div>
 
         {previewActive ? (
@@ -566,27 +431,13 @@ export function SkyBeaconApp() {
         }}
         beacons={beacons}
         selectedBeaconId={selectedBeaconId}
-        isAuthenticated={user !== null}
-        backendOnline={backendOnline}
         replacing={replacing}
-        onOpenAuth={() => setAuthOpen(true)}
         onSelect={setSelectedBeaconId}
         onRename={handleRename}
         onRecolor={handleRecolor}
         onDelete={handleDelete}
         onClearAll={handleClearAll}
         onReplace={handleReplace}
-      />
-
-      <AuthDialog
-        open={authOpen}
-        onOpenChange={setAuthOpen}
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-        loading={authLoading}
-        error={authError}
-        backendOnline={backendOnline}
-        backendUrl={pocketBaseUrl()}
       />
 
       <ToastViewport toast={toast} />

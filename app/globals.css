@@ -692,8 +692,7 @@ button {
   line-height: 1.55;
 }
 
-.permission-error,
-.form-error {
+.permission-error {
   color: #ffd4d4 !important;
 }
 
@@ -770,79 +769,6 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.segmented-control {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid rgba(248, 251, 247, 0.12);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.segmented-control button {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-}
-
-.segmented-control button.active {
-  background: rgba(110, 243, 220, 0.16);
-  color: var(--ink);
-}
-
-.auth-form,
-.field-stack {
-  display: grid;
-  gap: 10px;
-}
-
-.auth-form {
-  gap: 14px;
-}
-
-.auth-backend-status {
-  display: grid;
-  gap: 3px;
-  padding: 11px;
-  border: 1px solid rgba(110, 243, 220, 0.24);
-  border-radius: var(--radius);
-  background: rgba(110, 243, 220, 0.08);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.auth-backend-status strong,
-.auth-backend-status span,
-.auth-backend-status p {
-  display: block;
-}
-
-.auth-backend-status strong {
-  color: var(--ink);
-}
-
-.auth-backend-status span {
-  overflow-wrap: anywhere;
-  font-family: var(--font-mono);
-}
-
-.auth-backend-status p {
-  margin: 4px 0 0;
-  color: #ffd4d4;
-}
-
-.auth-backend-status.offline {
-  border-color: rgba(228, 124, 124, 0.34);
-  background: rgba(228, 124, 124, 0.11);
 }
 
 .drawer-status {

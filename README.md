@@ -13,7 +13,7 @@ Sky Beacon is a mobile-first progressive web app for placing tall, sky-reaching 
 - 100-meter-ahead beacon placement math.
 - Directional DOM/CSS beacon rendering with off-screen indicators.
 - Five curated beacon colors.
-- PocketBase email/password auth and SQLite-backed beacon persistence.
+- Browser-local beacon persistence with no backend service required.
 - Drawer management for selecting, renaming, recoloring, deleting, undoing delete, replacing, and clearing beacons.
 
 ## Development
@@ -36,12 +36,6 @@ Run for phone testing on the same Wi-Fi:
 npm run dev:lan
 ```
 
-Run PocketBase for login and saved beacons:
-
-```powershell
-npm run dev:backend
-```
-
 Then open the Wi-Fi URL from the phone. On this machine right now, that is:
 
 ```text
@@ -60,15 +54,15 @@ npm run test
 npm run build
 ```
 
-PocketBase setup lives in `pocketbase/README.md`. The frontend defaults to `http://127.0.0.1:8090` for desktop localhost.
+## Deployment
 
-Login and beacon saves require PocketBase to be running. For desktop testing, start it on `127.0.0.1:8090`. For phone/LAN testing, start PocketBase so it is reachable from the phone and either set:
+The app is ready to deploy to Vercel as a standard Next.js project. It does not require a database, backend process, persistent server disk, or runtime environment variables for beacon storage. Saved beacons live in each browser's `localStorage`, so they remain device-local.
 
 ```powershell
-$env:NEXT_PUBLIC_POCKETBASE_URL="http://192.168.10.96:8090"
+npm run build
 ```
 
-or rely on the app fallback, which uses `http://<frontend-host>:8090` when opened through a LAN hostname or IP.
+Use Vercel's default install and build settings for Next.js.
 
 ## Source Documents
 

@@ -157,10 +157,10 @@ The MVP should be honest about approximate accuracy. If GPS or compass confidenc
 
 ### 8.8 Persistence
 
-- The app must persist placed beacons between sessions using a server-side SQLite database.
-- The MVP must use PocketBase email/password accounts to associate saved beacons with a user.
-- Users may preview the camera before signing in, but saving and restoring beacons requires authentication.
-- Third-party OAuth, social sign-in, and shared beacon libraries should be reserved for the roadmap.
+- The app must persist placed beacons between sessions using browser-local storage.
+- Saving and restoring beacons must work without a backend service or account.
+- Saved beacons are device-local and browser-local for the MVP.
+- Account-based sync, third-party OAuth, social sign-in, and shared beacon libraries should be reserved for the roadmap.
 
 ### 8.9 Map Stretch Goal
 
@@ -202,10 +202,10 @@ The MVP should start with one polished default theme based on the provided dark 
   - Camera: `getUserMedia`.
   - Location: Geolocation API.
   - Heading/orientation: Device Orientation APIs and browser-specific compass behavior.
-  - Persistence: PocketBase API backed by a server-side SQLite database.
+  - Persistence: browser `localStorage` for device-local beacon records.
   - Installability: web app manifest and service worker.
 - MVP anchoring approach:
-  - Store latitude, longitude, generated/custom name, color, created time, ownership/session association, and any confidence metadata for each beacon.
+  - Store latitude, longitude, generated/custom name, color, created time, and any confidence metadata for each beacon.
   - Calculate destination coordinates from current GPS position, compass heading, and the 100m default distance.
   - Calculate bearing and distance from the user to each beacon.
   - Render beacons in the camera overlay based on bearing difference and estimated field of view.
@@ -247,7 +247,6 @@ The MVP should start with one polished default theme based on the provided dark 
 - Camera-first outdoor view.
 - Brief first-run tutorial.
 - GPS and compass permission flow.
-- PocketBase email/password authentication.
 - Progressive permission requests.
 - Contextual calibration prompts.
 - Preview-and-confirm beacon placement approximately 100m ahead.
@@ -256,7 +255,7 @@ The MVP should start with one polished default theme based on the provided dark 
 - Manual beacon color choice from a curated 5-color palette.
 - Post-placement beacon color editing.
 - Generated beacon names with rename support.
-- Server-side SQLite persistence.
+- Browser-local persistence.
 - Compact beacon list or drawer.
 - Beacon selection, deletion, immediate single-delete undo, and clear-all with confirmation.
 - Replace-existing-beacon flow when the user already has 3 saved beacons.
@@ -299,7 +298,7 @@ The MVP should start with one polished default theme based on the provided dark 
 3. Implement 100m-ahead beacon placement.
 4. Render directional beacons in the camera overlay.
 5. Add up to 3 saved beacons with manual color selection.
-6. Add selection, deletion, and server-side SQLite persistence.
+6. Add selection, deletion, and browser-local persistence.
 7. Apply the dark instrument visual system and beacon animations.
 8. Validate outdoors on multiple phones and browsers.
 9. Add stretch map flow if time allows.

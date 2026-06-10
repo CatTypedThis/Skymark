@@ -8,7 +8,6 @@ export type BeaconSlot = 1 | 2 | 3;
 
 export interface BeaconRecord {
   id: string;
-  owner: string;
   slot: BeaconSlot;
   name: string;
   color: BeaconColorId;

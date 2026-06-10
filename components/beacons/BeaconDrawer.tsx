@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { Check, LogIn, Pencil, Radio, Trash2 } from "lucide-react";
+import { Check, Pencil, Radio, Trash2 } from "lucide-react";
 import type { BeaconColorId, BeaconRecord } from "@/lib/beacons/beacon-types";
 import { getBeaconColor } from "@/lib/beacons/color-palette";
 import { Button } from "@/components/ui/button";
@@ -33,10 +33,7 @@ interface BeaconDrawerProps {
   onOpenChange: (open: boolean) => void;
   beacons: BeaconRecord[];
   selectedBeaconId: string | null;
-  isAuthenticated: boolean;
-  backendOnline: boolean | null;
   replacing: boolean;
-  onOpenAuth: () => void;
   onSelect: (beaconId: string) => void;
   onRename: (beacon: BeaconRecord, name: string) => void;
   onRecolor: (beacon: BeaconRecord, color: BeaconColorId) => void;
@@ -50,10 +47,7 @@ export function BeaconDrawer({
   onOpenChange,
   beacons,
   selectedBeaconId,
-  isAuthenticated,
-  backendOnline,
   replacing,
-  onOpenAuth,
   onSelect,
   onRename,
   onRecolor,
@@ -87,31 +81,18 @@ export function BeaconDrawer({
           <SheetDescription>
             {replacing
               ? "Choose which active marker should receive the new anchor."
-              : "Manage up to three saved anchors."}
+              : "Manage up to three anchors saved on this device."}
           </SheetDescription>
         </SheetHeader>
 
         <div className="drawer-status">
-          <span className={cn("drawer-status-pill", isAuthenticated && "ready")}>
+          <span className="drawer-status-pill ready">
             <Radio size={14} />
-            {isAuthenticated ? "Account linked" : "Guest preview"}
-          </span>
-          <span className={cn("drawer-status-pill", backendOnline === false && "warn")}>
-            {backendOnline === false ? "PocketBase offline" : "PocketBase persistence"}
+            Local storage
           </span>
         </div>
 
-        {!isAuthenticated ? (
-          <div className="drawer-empty">
-            <p>Sign in to save beacons and restore them after reopening the PWA.</p>
-            <Button variant="primary" onClick={onOpenAuth}>
-              <LogIn size={16} />
-              Sign in
-            </Button>
-          </div>
-        ) : null}
-
-        {isAuthenticated && beacons.length === 0 ? (
+        {beacons.length === 0 ? (
           <div className="drawer-empty">
             <p>No active beacons yet. Use the center placement control to preview one.</p>
           </div>
@@ -181,7 +162,7 @@ export function BeaconDrawer({
           </section>
         ) : null}
 
-        {isAuthenticated && beacons.length > 0 && !replacing ? (
+        {beacons.length > 0 && !replacing ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button className="drawer-clear" variant="danger">

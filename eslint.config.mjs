@@ -8,8 +8,6 @@ const eslintConfig = [
       "node_modules/**",
       "coverage/**",
       "public/sw.js",
-      "pocketbase/pb_data/**",
-      "pocketbase/pb_migrations/**",
     ],
   },
   js.configs.recommended,

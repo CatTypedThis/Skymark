@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, CloudOff, Compass, LocateFixed, Radio, UserCircle } from "lucide-react";
+import { Camera, Compass, LocateFixed, Radio } from "lucide-react";
 import type { BeaconConfidence, HeadingStability } from "@/lib/beacons/beacon-types";
 import { compassPoint } from "@/lib/geospatial/angles";
 import type { CameraStatus } from "@/lib/sensors/use-camera-stream";
@@ -16,8 +16,6 @@ interface SensorStatusBarProps {
   heading: number | null;
   stability: HeadingStability;
   confidence: BeaconConfidence;
-  isAuthenticated: boolean;
-  backendOnline: boolean | null;
 }
 
 function statusClass(active: boolean, warning = false) {
@@ -31,8 +29,6 @@ export function SensorStatusBar({
   heading,
   stability,
   confidence,
-  isAuthenticated,
-  backendOnline,
 }: SensorStatusBarProps) {
   const headingLabel = heading === null ? "No heading" : `${compassPoint(heading)} ${Math.round(heading)} deg`;
   const degraded =
@@ -70,14 +66,6 @@ export function SensorStatusBar({
         <span className={statusClass(stability === "stable", stability === "unstable")}>
           <Radio size={14} />
           {stability}
-        </span>
-        <span className={statusClass(isAuthenticated, !isAuthenticated)}>
-          <UserCircle size={14} />
-          {isAuthenticated ? "Signed in" : "Guest"}
-        </span>
-        <span className={statusClass(backendOnline === true, backendOnline === false)}>
-          <CloudOff size={14} />
-          {backendOnline === false ? "PocketBase offline" : "PocketBase"}
         </span>
       </div>
     </header>

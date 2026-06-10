@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "dev:lan": "next dev -H 0.0.0.0 -p 3001",
-    "dev:backend": "pocketbase/pocketbase.exe serve --http=0.0.0.0:8090 --dir pocketbase/pb_data --migrationsDir pocketbase/pb_migrations",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
@@ -22,7 +21,6 @@
     "clsx": "latest",
     "lucide-react": "latest",
     "next": "latest",
-    "pocketbase": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwind-merge": "latest"
