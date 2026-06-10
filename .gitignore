@@ -7,14 +7,21 @@ Thumbs.db
 # Environment and secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 
 # Dependencies and build output
 node_modules/
+.next/
+.turbo/
 dist/
 build/
 out/
+pocketbase/pb_data/
+pocketbase/pocketbase.exe
+pocketbase/CHANGELOG.md
+pocketbase/LICENSE.md
 
 # Logs and caches
 *.log

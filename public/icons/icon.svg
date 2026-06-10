@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sky Beacon icon">
+  <rect width="512" height="512" rx="108" fill="#080d0f"/>
+  <path d="M256 66 386 256 256 446 126 256 256 66Z" fill="#0f1b1c" stroke="#6ef3dc" stroke-width="18"/>
+  <path d="M256 125 335 256 256 387 177 256 256 125Z" fill="none" stroke="#f0bd61" stroke-width="14"/>
+  <path d="M256 172 296 256 256 340 216 256 256 172Z" fill="#6ef3dc"/>
+  <path d="M256 28v76M256 408v76M28 256h76M408 256h76" stroke="#6ef3dc" stroke-width="16" stroke-linecap="round" opacity=".72"/>
+  <circle cx="256" cy="256" r="42" fill="#f8fbf7" opacity=".92"/>
+</svg>
