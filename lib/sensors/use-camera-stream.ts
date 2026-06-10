@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { detectPlatform } from "@/lib/utils/platform";
 
 export type CameraStatus = "idle" | "requesting" | "ready" | "blocked" | "unsupported";
 
@@ -9,6 +10,7 @@ export function useCameraStream() {
   const streamRef = useRef<MediaStream | null>(null);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const platform = detectPlatform();
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -19,6 +21,12 @@ export function useCameraStream() {
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus("unsupported");
       setError("This browser cannot open a live camera stream.");
+      return;
+    }
+
+    if (platform.requiresHTTPSForSensors) {
+      setStatus("blocked");
+      setError("iOS Safari requires HTTPS for camera access. Please use a secure HTTPS connection.");
       return;
     }
 
@@ -43,9 +51,14 @@ export function useCameraStream() {
       setStatus("ready");
     } catch (cameraError) {
       setStatus("blocked");
-      setError(cameraError instanceof Error ? cameraError.message : "Camera permission was denied.");
+      const errorMessage = cameraError instanceof Error ? cameraError.message : "Camera permission was denied.";
+      if (platform.isIOS && (errorMessage.includes("Permission") || errorMessage.includes("denied"))) {
+        setError("Camera permission was denied. Please enable camera access in Settings > Safari > Camera.");
+      } else {
+        setError(errorMessage);
+      }
     }
-  }, []);
+  }, [platform.requiresHTTPSForSensors, platform.isIOS]);
 
   useEffect(() => stopCamera, [stopCamera]);
 
@@ -55,5 +68,6 @@ export function useCameraStream() {
     error,
     requestCamera,
     stopCamera,
+    requiresHTTPS: platform.requiresHTTPSForSensors,
   };
 }
