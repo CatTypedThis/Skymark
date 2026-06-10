@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Beacon UI Mockups</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8fbf7;
+      --muted: rgba(248, 251, 247, 0.68);
+      --dim: rgba(248, 251, 247, 0.42);
+      --panel: rgba(13, 19, 23, 0.74);
+      --panel-deep: rgba(7, 10, 12, 0.82);
+      --line: rgba(211, 245, 232, 0.24);
+      --line-strong: rgba(216, 246, 235, 0.46);
+      --aqua: #6ef3dc;
+      --aqua-soft: rgba(110, 243, 220, 0.28);
+      --amber: #f0bd61;
+      --amber-soft: rgba(240, 189, 97, 0.22);
+      --rose: #e47c7c;
+      --moss: #8ebf7a;
+      --bg: #111415;
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(142, 191, 122, 0.12), transparent 30rem),
+        radial-gradient(circle at 92% 18%, rgba(240, 189, 97, 0.12), transparent 28rem),
+        linear-gradient(135deg, #111415 0%, #1b1e1c 45%, #141819 100%);
+      color: var(--ink);
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    .page {
+      width: min(100%, 1720px);
+      margin: 0 auto;
+      padding: 32px 28px 56px;
+    }
+
+    .board-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(110, 243, 220, 0.42);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(110, 243, 220, 0.16), rgba(240, 189, 97, 0.1)),
+        rgba(255, 255, 255, 0.04);
+      box-shadow: 0 0 32px rgba(110, 243, 220, 0.14);
+    }
+
+    .mark-core {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--aqua);
+      transform: rotate(45deg);
+      position: relative;
+    }
+
+    .mark-core::before,
+    .mark-core::after {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1px solid rgba(240, 189, 97, 0.92);
+    }
+
+    .mark-core::after {
+      inset: 9px;
+      background: var(--aqua);
+      box-shadow: 0 0 18px var(--aqua);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .kicker {
+      color: var(--amber);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin-top: 5px;
+      font-size: 30px;
+      line-height: 1.12;
+      font-weight: 790;
+    }
+
+    .board-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(248, 251, 247, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .mockup-grid {
+      display: grid;
+      grid-template-columns: minmax(900px, 1fr) 430px;
+      gap: 26px;
+      align-items: start;
+      overflow-x: auto;
+      padding-bottom: 12px;
+    }
+
+    .mockup-block {
+      min-width: 0;
+    }
+
+    .mockup-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .mockup-label strong {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .artboard {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background: #0c1113;
+      border: 1px solid rgba(248, 251, 247, 0.16);
+      border-radius: var(--radius);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+    }
+
+    .desktop-artboard {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      min-width: 900px;
+    }
+
+    .mobile-shell {
+      width: 390px;
+      height: 844px;
+      padding: 10px;
+      border-radius: 30px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.03) 21%, rgba(0, 0, 0, 0.42) 100%),
+        #191d1f;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+    }
+
+    .mobile-artboard {
+      width: 370px;
+      height: 824px;
+      border-radius: 24px;
+    }
+
+    .camera-bg {
+      position: absolute;
+      inset: 0;
+      z-index: -3;
+      background-image: url("assets/sky-beacon-camera-backdrop.png");
+      background-size: cover;
+      background-position: center center;
+      transform: scale(1.01);
+    }
+
+    .mobile-artboard .camera-bg {
+      background-position: 51% center;
+      transform: scale(1.08);
+    }
+
+    .camera-grade {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.02) 28%, rgba(0, 0, 0, 0.28) 72%, rgba(0, 0, 0, 0.66) 100%),
+        radial-gradient(circle at 50% 45%, transparent 0 23%, rgba(110, 243, 220, 0.08) 37%, transparent 52%),
+        radial-gradient(circle at 74% 26%, rgba(240, 189, 97, 0.16), transparent 20rem);
+    }
+
+    .scan-lines {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.36;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, transparent 0 48%, rgba(110, 243, 220, 0.12) 50%, transparent 52% 100%);
+      mix-blend-mode: screen;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      color: var(--ink);
+    }
+
+    .desktop-topbar {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 22px;
+      height: 56px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      padding: 0 12px 0 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 10, 0.44);
+      backdrop-filter: blur(14px);
+    }
+
+    .app-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 186px;
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .mini-mark {
+      width: 26px;
+      height: 26px;
+      border: 1px solid rgba(110, 243, 220, 0.72);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: var(--aqua);
+      box-shadow: inset 0 0 16px rgba(110, 243, 220, 0.1);
+    }
+
+    .signal-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .signal-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(248, 251, 247, 0.16);
+      overflow: hidden;
+    }
+
+    .signal-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--aqua), var(--amber));
+      box-shadow: 0 0 16px rgba(110, 243, 220, 0.3);
+    }
+
+    .status-cluster {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .chip {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 10px;
+      border: 1px solid rgba(248, 251, 247, 0.16);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 680;
+    }
+
+    .chip.live {
+      color: #dffcf5;
+      border-color: rgba(110, 243, 220, 0.36);
+      background: rgba(110, 243, 220, 0.12);
+    }
+
+    .desktop-rail {
+      position: absolute;
+      top: 98px;
+      left: 24px;
+      width: 64px;
+      display: grid;
+      gap: 10px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(6, 10, 11, 0.55);
+      backdrop-filter: blur(14px);
+    }
+
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(248, 251, 247, 0.14);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.055);
+      color: rgba(248, 251, 247, 0.76);
+      cursor: default;
+    }
+
+    .icon-button.active {
+      color: var(--aqua);
+      border-color: rgba(110, 243, 220, 0.48);
+      background: rgba(110, 243, 220, 0.13);
+      box-shadow: inset 0 0 20px rgba(110, 243, 220, 0.08), 0 0 18px rgba(110, 243, 220, 0.14);
+    }
+
+    .icon-button.warn {
+      color: var(--rose);
+      border-color: rgba(228, 124, 124, 0.28);
+      background: rgba(228, 124, 124, 0.09);
+    }
+
+    .desktop-inspector {
+      position: absolute;
+      top: 98px;
+      right: 24px;
+      width: 288px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid rgba(248, 251, 247, 0.1);
+    }
+
+    .panel-section:last-child {
+      border-bottom: 0;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .panel-title h2,
+    .panel-title h3 {
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 780;
+    }
+
+    .state-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--aqua);
+      box-shadow: 0 0 18px var(--aqua);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      min-height: 68px;
+      padding: 11px;
+      border: 1px solid rgba(248, 251, 247, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--dim);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .confidence {
+      display: grid;
+      gap: 9px;
+    }
+
+    .confidence-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 690;
+    }
+
+    .meter {
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(248, 251, 247, 0.13);
+      overflow: hidden;
+    }
+
+    .meter span {
+      display: block;
+      width: 86%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--moss), var(--aqua), var(--amber));
+      box-shadow: 0 0 22px rgba(110, 243, 220, 0.28);
+    }
+
+    .beacon-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .beacon-row {
+      display: grid;
+      grid-template-columns: 10px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 8px;
+      border: 1px solid rgba(248, 251, 247, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .beacon-row small {
+      display: block;
+      margin-top: 2px;
+      color: var(--dim);
+      font-size: 11px;
+    }
+
+    .beacon-color {
+      width: 10px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--aqua);
+      box-shadow: 0 0 18px var(--aqua);
+    }
+
+    .beacon-color.alt {
+      background: var(--amber);
+      box-shadow: 0 0 18px var(--amber);
+    }
+
+    .beacon-color.green {
+      background: var(--moss);
+      box-shadow: 0 0 18px var(--moss);
+    }
+
+    .desktop-bottom {
+      position: absolute;
+      left: 112px;
+      right: 336px;
+      bottom: 22px;
+      min-height: 100px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 10, 0.56);
+      backdrop-filter: blur(16px);
+    }
+
+    .bottom-readout {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .readout-glyph {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(110, 243, 220, 0.36);
+      border-radius: var(--radius);
+      color: var(--aqua);
+      background: rgba(110, 243, 220, 0.1);
+    }
+
+    .bottom-readout span,
+    .tiny-label {
+      display: block;
+      color: var(--dim);
+      font-size: 11px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+
+    .bottom-readout strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 18px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .place-button {
+      width: 74px;
+      height: 74px;
+      border: 1px solid rgba(110, 243, 220, 0.64);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(110, 243, 220, 0.34) 0 30%, rgba(110, 243, 220, 0.1) 31% 56%, rgba(0, 0, 0, 0.22) 57% 100%);
+      color: var(--ink);
+      box-shadow: 0 0 40px rgba(110, 243, 220, 0.26), inset 0 0 32px rgba(110, 243, 220, 0.15);
+      display: grid;
+      place-items: center;
+      cursor: default;
+    }
+
+    .bottom-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reticle {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: 220px;
+      height: 220px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .reticle::before,
+    .reticle::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(110, 243, 220, 0.5);
+      box-shadow: 0 0 28px rgba(110, 243, 220, 0.14);
+    }
+
+    .reticle::after {
+      inset: 48px;
+      border-color: rgba(240, 189, 97, 0.44);
+    }
+
+    .reticle-line {
+      position: absolute;
+      background: rgba(110, 243, 220, 0.58);
+      box-shadow: 0 0 14px rgba(110, 243, 220, 0.5);
+    }
+
+    .reticle-line.h {
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+    }
+
+    .reticle-line.v {
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+    }
+
+    .reticle-corner {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: var(--aqua);
+      border-style: solid;
+      opacity: 0.82;
+    }
+
+    .reticle-corner.tl {
+      left: 17px;
+      top: 17px;
+      border-width: 1px 0 0 1px;
+    }
+
+    .reticle-corner.tr {
+      right: 17px;
+      top: 17px;
+      border-width: 1px 1px 0 0;
+    }
+
+    .reticle-corner.bl {
+      left: 17px;
+      bottom: 17px;
+      border-width: 0 0 1px 1px;
+    }
+
+    .reticle-corner.br {
+      right: 17px;
+      bottom: 17px;
+      border-width: 0 1px 1px 0;
+    }
+
+    .beacon {
+      --beam: var(--aqua);
+      --beam-soft: rgba(110, 243, 220, 0.24);
+      position: absolute;
+      width: 14px;
+      height: 560px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      filter: drop-shadow(0 0 18px var(--beam));
+    }
+
+    .beacon::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      transform: translateX(-50%);
+      background:
+        linear-gradient(180deg, transparent 0%, var(--beam-soft) 10%, var(--beam) 40%, rgba(255, 255, 255, 0.92) 52%, var(--beam) 64%, var(--beam-soft) 90%, transparent 100%);
+      clip-path: polygon(50% 0, 86% 50%, 58% 100%, 42% 100%, 14% 50%);
+      opacity: 0.92;
+    }
+
+    .beacon::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -18px;
+      width: 116px;
+      height: 36px;
+      transform: translateX(-50%);
+      border: 2px solid var(--beam);
+      border-radius: 50%;
+      background: radial-gradient(ellipse, var(--beam-soft), transparent 66%);
+      box-shadow: 0 0 38px var(--beam-soft), inset 0 0 24px var(--beam-soft);
+    }
+
+    .beacon .cap {
+      position: absolute;
+      left: 50%;
+      top: 43%;
+      width: 42px;
+      height: 42px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      border: 1px solid var(--beam);
+      background: rgba(0, 0, 0, 0.18);
+      box-shadow: inset 0 0 18px var(--beam-soft), 0 0 26px var(--beam-soft);
+    }
+
+    .beacon .label {
+      position: absolute;
+      left: 28px;
+      top: 44%;
+      min-width: 138px;
+      padding: 8px 10px;
+      border: 1px solid rgba(110, 243, 220, 0.46);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 10, 0.62);
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.25;
+      backdrop-filter: blur(10px);
+    }
+
+    .beacon .label span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .beacon.main {
+      left: 59%;
+      bottom: 20%;
+      height: 640px;
+    }
+
+    .beacon.left {
+      --beam: var(--amber);
+      --beam-soft: rgba(240, 189, 97, 0.24);
+      left: 31%;
+      bottom: 32%;
+      height: 448px;
+      width: 10px;
+      opacity: 0.78;
+    }
+
+    .beacon.far {
+      --beam: var(--moss);
+      --beam-soft: rgba(142, 191, 122, 0.2);
+      left: 79%;
+      bottom: 39%;
+      height: 376px;
+      width: 8px;
+      opacity: 0.68;
+    }
+
+    .desktop-radar {
+      position: absolute;
+      right: 334px;
+      top: 104px;
+      width: 126px;
+      height: 126px;
+      border: 1px solid rgba(110, 243, 220, 0.34);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, transparent 0 28%, rgba(110, 243, 220, 0.08) 29% 30%, transparent 31% 54%, rgba(110, 243, 220, 0.08) 55% 56%, transparent 57%),
+        conic-gradient(from 245deg, rgba(110, 243, 220, 0.34), transparent 76deg, transparent);
+      box-shadow: inset 0 0 30px rgba(110, 243, 220, 0.1), 0 0 30px rgba(0, 0, 0, 0.26);
+    }
+
+    .desktop-radar::before,
+    .desktop-radar::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--aqua);
+      box-shadow: 0 0 16px var(--aqua);
+    }
+
+    .desktop-radar::before {
+      width: 7px;
+      height: 7px;
+    }
+
+    .desktop-radar::after {
+      width: 4px;
+      height: 4px;
+      left: 72%;
+      top: 34%;
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+    }
+
+    .sight-lines {
+      position: absolute;
+      inset: 92px 328px 126px 104px;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(110, 243, 220, 0.2) 1px, transparent 1px) 0 0 / 92px 92px,
+        linear-gradient(180deg, rgba(110, 243, 220, 0.16) 1px, transparent 1px) 0 0 / 92px 92px;
+      opacity: 0.28;
+      mask-image: radial-gradient(circle at 51% 48%, black 0 36%, transparent 70%);
+    }
+
+    .mobile-statusbar {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 12px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 760;
+      z-index: 4;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(248, 251, 247, 0.82);
+    }
+
+    .mobile-top {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 4;
+    }
+
+    .mobile-chip {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 11px;
+      border: 1px solid rgba(248, 251, 247, 0.14);
+      border-radius: 999px;
+      background: rgba(5, 9, 10, 0.45);
+      color: rgba(248, 251, 247, 0.82);
+      font-size: 12px;
+      font-weight: 720;
+      backdrop-filter: blur(12px);
+    }
+
+    .mobile-chip.ready {
+      color: #e8fdf7;
+      border-color: rgba(110, 243, 220, 0.36);
+      background: rgba(36, 90, 81, 0.42);
+    }
+
+    .mobile-reticle {
+      width: 180px;
+      height: 180px;
+      top: 44%;
+    }
+
+    .mobile-reticle::after {
+      inset: 40px;
+    }
+
+    .mobile-beacon {
+      left: 52%;
+      bottom: 23%;
+      height: 520px;
+      width: 12px;
+    }
+
+    .mobile-beacon .label {
+      left: -76px;
+      top: 36%;
+      min-width: 156px;
+      text-align: center;
+    }
+
+    .mobile-beacon.secondary {
+      --beam: var(--amber);
+      --beam-soft: rgba(240, 189, 97, 0.22);
+      left: 77%;
+      bottom: 35%;
+      width: 8px;
+      height: 300px;
+      opacity: 0.72;
+    }
+
+    .mobile-side-tools {
+      position: absolute;
+      right: 14px;
+      top: 120px;
+      display: grid;
+      gap: 10px;
+      z-index: 4;
+    }
+
+    .mobile-side-tools .icon-button {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(5, 9, 10, 0.46);
+      backdrop-filter: blur(12px);
+    }
+
+    .mobile-bottom {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 4;
+      display: grid;
+      gap: 10px;
+    }
+
+    .selected-sheet {
+      padding: 12px;
+      border: 1px solid rgba(248, 251, 247, 0.14);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 10, 0.62);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+    }
+
+    .sheet-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sheet-title {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .sheet-title strong {
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .sheet-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sheet-meter {
+      margin-top: 11px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mobile-controls {
+      min-height: 90px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(248, 251, 247, 0.14);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 10, 0.58);
+      backdrop-filter: blur(16px);
+    }
+
+    .mobile-controls .icon-button {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+    }
+
+    .mobile-actions-left,
+    .mobile-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mobile-actions-right {
+      justify-content: flex-end;
+    }
+
+    .mobile-controls .place-button {
+      width: 66px;
+      height: 66px;
+    }
+
+    .phone-home {
+      position: absolute;
+      left: 50%;
+      bottom: 6px;
+      width: 116px;
+      height: 4px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(248, 251, 247, 0.62);
+      z-index: 8;
+    }
+
+    .notch {
+      position: absolute;
+      left: 50%;
+      top: 9px;
+      width: 112px;
+      height: 28px;
+      transform: translateX(-50%);
+      border-radius: 0 0 16px 16px;
+      background: #07090a;
+      z-index: 8;
+    }
+
+    .mobile-artboard .scan-lines {
+      opacity: 0.28;
+    }
+
+    .mobile-artboard .sight-lines {
+      inset: 104px 24px 216px 24px;
+      background-size: 54px 54px;
+      opacity: 0.2;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      left: 52%;
+      bottom: 24%;
+      width: 116px;
+      height: 42px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(110, 243, 220, 0.48);
+      border-radius: 50%;
+      box-shadow: 0 0 42px rgba(110, 243, 220, 0.22);
+      opacity: 0.9;
+    }
+
+    .desktop-artboard .pulse-ring {
+      left: 59%;
+      bottom: 19.7%;
+      width: 136px;
+      height: 42px;
+    }
+
+    @media (max-width: 1300px) {
+      .mockup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-shell {
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 740px) {
+      .page {
+        padding: 20px 14px 38px;
+      }
+
+      .board-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .board-meta {
+        justify-content: flex-start;
+      }
+
+      .mockup-grid {
+        gap: 22px;
+      }
+
+      .desktop-artboard {
+        min-width: 900px;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .scan-lines {
+        animation: scanDrift 9s linear infinite;
+      }
+
+      .beacon::before {
+        animation: beaconBreath 2.8s ease-in-out infinite;
+      }
+
+      .pulse-ring {
+        animation: ringPulse 2.4s ease-in-out infinite;
+      }
+    }
+
+    @keyframes scanDrift {
+      from {
+        background-position: 0 0, 0 0;
+      }
+      to {
+        background-position: 0 84px, 38px 0;
+      }
+    }
+
+    @keyframes beaconBreath {
+      0%,
+      100% {
+        opacity: 0.78;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes ringPulse {
+      0%,
+      100% {
+        transform: translateX(-50%) scale(0.96);
+        opacity: 0.54;
+      }
+      50% {
+        transform: translateX(-50%) scale(1.08);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="board-header">
+      <div class="identity">
+        <div class="mark" aria-hidden="true">
+          <div class="mark-core"></div>
+        </div>
+        <div>
+          <p class="kicker">Sky Beacon</p>
+          <h1>High Definition UI Mockups</h1>
+        </div>
+      </div>
+      <div class="board-meta" aria-label="Mockup metadata">
+        <span class="tag">Desktop 1440 x 900</span>
+        <span class="tag">Mobile 390 x 844</span>
+        <span class="tag">Camera-first AR</span>
+      </div>
+    </header>
+
+    <section class="mockup-grid" aria-label="Sky Beacon mockup artboards">
+      <div class="mockup-block">
+        <div class="mockup-label">
+          <strong>Desktop AR Console</strong>
+          <span>Expanded placement and beacon management view</span>
+        </div>
+
+        <article class="artboard desktop-artboard" aria-label="Desktop Sky Beacon mockup">
+          <div class="camera-bg"></div>
+          <div class="camera-grade"></div>
+          <div class="scan-lines"></div>
+
+          <div class="hud">
+            <div class="sight-lines"></div>
+
+            <div class="desktop-topbar">
+              <div class="app-name">
+                <span class="mini-mark" aria-hidden="true"><i data-lucide="scan-line" size="16"></i></span>
+                <span>Sky Beacon</span>
+              </div>
+              <div class="signal-strip" aria-hidden="true">
+                <div class="signal-bar"><span style="width: 80%"></span></div>
+                <div class="signal-bar"><span style="width: 52%"></span></div>
+                <div class="signal-bar"><span style="width: 91%"></span></div>
+                <div class="signal-bar"><span style="width: 64%"></span></div>
+                <div class="signal-bar"><span style="width: 75%"></span></div>
+                <div class="signal-bar"><span style="width: 43%"></span></div>
+              </div>
+              <div class="status-cluster">
+                <span class="chip live"><i data-lucide="radio" size="14"></i>AR Lock</span>
+                <span class="chip"><i data-lucide="navigation" size="14"></i>NW 312</span>
+                <span class="chip"><i data-lucide="battery-medium" size="14"></i>78%</span>
+              </div>
+            </div>
+
+            <nav class="desktop-rail" aria-label="Desktop mockup tools">
+              <button class="icon-button active" title="Beacon placement" aria-label="Beacon placement"><i data-lucide="crosshair" size="20"></i></button>
+              <button class="icon-button" title="Compass" aria-label="Compass"><i data-lucide="compass" size="20"></i></button>
+              <button class="icon-button" title="Beacon list" aria-label="Beacon list"><i data-lucide="map-pin" size="20"></i></button>
+              <button class="icon-button" title="Layers" aria-label="Layers"><i data-lucide="layers-3" size="20"></i></button>
+              <button class="icon-button" title="Camera" aria-label="Camera"><i data-lucide="camera" size="20"></i></button>
+              <button class="icon-button" title="Settings" aria-label="Settings"><i data-lucide="sliders-horizontal" size="20"></i></button>
+            </nav>
+
+            <div class="desktop-radar" aria-hidden="true"></div>
+
+            <div class="beacon left" aria-hidden="true">
+              <span class="cap"></span>
+            </div>
+            <div class="beacon far" aria-hidden="true">
+              <span class="cap"></span>
+            </div>
+            <div class="beacon main" aria-hidden="true">
+              <span class="cap"></span>
+              <span class="label"><strong>Ridge Gate</strong><span>142 m · stable</span></span>
+            </div>
+            <div class="pulse-ring" aria-hidden="true"></div>
+
+            <div class="reticle" aria-hidden="true">
+              <span class="reticle-line h"></span>
+              <span class="reticle-line v"></span>
+              <span class="reticle-corner tl"></span>
+              <span class="reticle-corner tr"></span>
+              <span class="reticle-corner bl"></span>
+              <span class="reticle-corner br"></span>
+            </div>
+
+            <aside class="desktop-inspector" aria-label="Selected beacon inspector">
+              <div class="panel-section">
+                <div class="panel-title">
+                  <h2>Ridge Gate</h2>
+                  <span class="state-dot" aria-hidden="true"></span>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric">
+                    <span>Distance</span>
+                    <strong>142 m</strong>
+                  </div>
+                  <div class="metric">
+                    <span>Height</span>
+                    <strong>480 m</strong>
+                  </div>
+                  <div class="metric">
+                    <span>Bearing</span>
+                    <strong>312</strong>
+                  </div>
+                  <div class="metric">
+                    <span>Drift</span>
+                    <strong>1.8 m</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel-section confidence">
+                <div class="confidence-row">
+                  <span>Anchor confidence</span>
+                  <span>86%</span>
+                </div>
+                <div class="meter"><span></span></div>
+              </div>
+
+              <div class="panel-section">
+                <div class="panel-title">
+                  <h3>Nearby beacons</h3>
+                  <span class="tiny-label">3 active</span>
+                </div>
+                <div class="beacon-list">
+                  <div class="beacon-row">
+                    <span class="beacon-color"></span>
+                    <div>Ridge Gate<small>Selected · 142 m</small></div>
+                    <span>86%</span>
+                  </div>
+                  <div class="beacon-row">
+                    <span class="beacon-color alt"></span>
+                    <div>Lake Edge<small>West · 310 m</small></div>
+                    <span>72%</span>
+                  </div>
+                  <div class="beacon-row">
+                    <span class="beacon-color green"></span>
+                    <div>North Trail<small>Far · 890 m</small></div>
+                    <span>65%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel-section">
+                <button class="icon-button warn" title="Delete selected beacon" aria-label="Delete selected beacon"><i data-lucide="trash-2" size="18"></i></button>
+              </div>
+            </aside>
+
+            <div class="desktop-bottom" aria-label="Placement control panel">
+              <div class="bottom-readout">
+                <span class="readout-glyph"><i data-lucide="locate-fixed" size="20"></i></span>
+                <div>
+                  <span>Placement mode</span>
+                  <strong>Tap terrain to anchor</strong>
+                </div>
+              </div>
+              <button class="place-button" title="Place beacon" aria-label="Place beacon"><i data-lucide="sparkles" size="28"></i></button>
+              <div class="bottom-actions">
+                <button class="icon-button" title="Undo" aria-label="Undo"><i data-lucide="undo-2" size="19"></i></button>
+                <button class="icon-button" title="Recenter" aria-label="Recenter"><i data-lucide="scan-search" size="19"></i></button>
+                <button class="icon-button" title="Confirm" aria-label="Confirm"><i data-lucide="check" size="19"></i></button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="mockup-block">
+        <div class="mockup-label">
+          <strong>Mobile Camera</strong>
+          <span>Primary MVP portrait experience</span>
+        </div>
+
+        <div class="mobile-shell" aria-label="Phone device frame">
+          <article class="artboard mobile-artboard" aria-label="Mobile Sky Beacon mockup">
+            <div class="camera-bg"></div>
+            <div class="camera-grade"></div>
+            <div class="scan-lines"></div>
+            <div class="notch" aria-hidden="true"></div>
+            <div class="phone-home" aria-hidden="true"></div>
+
+            <div class="hud">
+              <div class="sight-lines"></div>
+              <div class="mobile-statusbar" aria-label="Phone status">
+                <span>18:42</span>
+                <span class="status-icons">
+                  <i data-lucide="signal" size="15"></i>
+                  <i data-lucide="wifi" size="15"></i>
+                  <i data-lucide="battery-medium" size="17"></i>
+                </span>
+              </div>
+
+              <div class="mobile-top">
+                <span class="mobile-chip ready"><i data-lucide="radio" size="14"></i>Anchor ready</span>
+                <span class="mobile-chip"><i data-lucide="navigation" size="14"></i>NW</span>
+              </div>
+
+              <div class="mobile-side-tools">
+                <button class="icon-button active" title="Beacon placement" aria-label="Beacon placement"><i data-lucide="crosshair" size="18"></i></button>
+                <button class="icon-button" title="Beacon list" aria-label="Beacon list"><i data-lucide="map-pin" size="18"></i></button>
+                <button class="icon-button" title="Recenter" aria-label="Recenter"><i data-lucide="scan-search" size="18"></i></button>
+              </div>
+
+              <div class="beacon mobile-beacon secondary" aria-hidden="true">
+                <span class="cap"></span>
+              </div>
+              <div class="beacon mobile-beacon" aria-hidden="true">
+                <span class="cap"></span>
+                <span class="label"><strong>Ridge Gate</strong><span>142 m</span></span>
+              </div>
+              <div class="pulse-ring" aria-hidden="true"></div>
+
+              <div class="reticle mobile-reticle" aria-hidden="true">
+                <span class="reticle-line h"></span>
+                <span class="reticle-line v"></span>
+                <span class="reticle-corner tl"></span>
+                <span class="reticle-corner tr"></span>
+                <span class="reticle-corner bl"></span>
+                <span class="reticle-corner br"></span>
+              </div>
+
+              <div class="mobile-bottom" aria-label="Mobile placement controls">
+                <div class="selected-sheet">
+                  <div class="sheet-main">
+                    <div class="sheet-title">
+                      <strong>Ridge Gate</strong>
+                      <span>142 m · anchor stable</span>
+                    </div>
+                    <button class="icon-button warn" title="Delete selected beacon" aria-label="Delete selected beacon"><i data-lucide="trash-2" size="17"></i></button>
+                  </div>
+                  <div class="sheet-meter">
+                    <div class="meter"><span></span></div>
+                    <span>86%</span>
+                  </div>
+                </div>
+
+                <div class="mobile-controls">
+                  <div class="mobile-actions-left">
+                    <button class="icon-button" title="Undo" aria-label="Undo"><i data-lucide="undo-2" size="18"></i></button>
+                  </div>
+                  <button class="place-button" title="Place beacon" aria-label="Place beacon"><i data-lucide="sparkles" size="25"></i></button>
+                  <div class="mobile-actions-right">
+                    <button class="icon-button" title="Confirm" aria-label="Confirm"><i data-lucide="check" size="18"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.lucide) {
+        window.lucide.createIcons({
+          attrs: {
+            "stroke-width": 1.8
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
