@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeadingStability } from "@/lib/beacons/beacon-types";
 import { angularDifference, normalizeHeading } from "@/lib/geospatial/angles";
 import { smoothHeading } from "./smoothing";
+import { detectPlatform } from "@/lib/utils/platform";
 
 type PermissionResult = "granted" | "denied" | "prompt";
 
@@ -57,6 +58,7 @@ export function useOrientation() {
     isSimulated: false,
     error: null,
   });
+  const platform = detectPlatform();
 
   const attachListener = useCallback(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
@@ -103,6 +105,18 @@ export function useOrientation() {
       return;
     }
 
+    if (platform.requiresHTTPSForSensors) {
+      setState({
+        status: "blocked",
+        heading: null,
+        pitch: null,
+        stability: "unknown",
+        isSimulated: false,
+        error: "iOS Safari requires HTTPS for compass access. Please use a secure HTTPS connection.",
+      });
+      return;
+    }
+
     setState((current) => ({ ...current, status: "requesting", error: null }));
 
     const orientationEvent = DeviceOrientationEvent as DeviceOrientationEventConstructorWithPermission;
@@ -113,15 +127,18 @@ export function useOrientation() {
           setState((current) => ({
             ...current,
             status: "blocked",
-            error: "Orientation permission was denied.",
+            error: "Compass permission was denied. Please enable motion access in Settings > Safari > Motion.",
           }));
           return;
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Orientation permission was denied.";
         setState((current) => ({
           ...current,
           status: "blocked",
-          error: error instanceof Error ? error.message : "Orientation permission was denied.",
+          error: platform.isIOS && errorMessage.includes("not allowed")
+            ? "Compass permission must be triggered by a user interaction. Please tap the permission button directly."
+            : errorMessage,
         }));
         return;
       }
@@ -129,7 +146,7 @@ export function useOrientation() {
 
     cleanupRef.current?.();
     cleanupRef.current = attachListener();
-  }, [attachListener]);
+  }, [attachListener, platform.requiresHTTPSForSensors, platform.isIOS]);
 
   useEffect(() => {
     return () => cleanupRef.current?.();
@@ -138,5 +155,6 @@ export function useOrientation() {
   return {
     ...state,
     requestOrientation,
+    requiresHTTPS: platform.requiresHTTPSForSensors,
   };
 }

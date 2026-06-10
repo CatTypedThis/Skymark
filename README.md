@@ -44,7 +44,49 @@ http://192.168.10.96:3001
 
 If the page does not load, verify the phone is on the same Wi-Fi network, disable phone VPN/private relay/cellular fallback, and allow Node/Next.js through Windows Firewall for private networks. The computer hostname is `TABLET-S99U1SKK`, but the numeric Wi-Fi IP is usually more reliable.
 
-For camera and GPS testing on a phone, plain LAN HTTP is not a secure browser context. On Android Chrome for local development, open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, enable it, add `http://192.168.10.96:3001`, relaunch Chrome, and then reopen the app. For production or normal demos, use HTTPS.
+### HTTPS Requirements for iOS Safari
+
+**iOS Safari requires HTTPS for camera, GPS, and device orientation access.** This is a strict security requirement that cannot be bypassed.
+
+For iOS testing during development, you have several options:
+
+1. **Use ngrok or similar HTTPS tunneling** (Recommended):
+   ```powershell
+   npm install -g ngrok
+   ngrok http 3000
+   ```
+   Then use the provided HTTPS URL on your iOS device.
+
+2. **Deploy to Vercel** for testing:
+   - Push your code to GitHub
+   - Deploy to Vercel (free tier provides HTTPS)
+   - Test on iOS Safari using the Vercel HTTPS URL
+
+3. **Use local HTTPS with self-signed certificates**:
+   - Set up local HTTPS development with tools like `mkcert` or `local-ssl-proxy`
+   - Note: iOS may still show certificate warnings
+
+For Android Chrome testing with HTTP, you can enable insecure origins in `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, but this does not work on iOS Safari.
+
+### iOS Safari Testing Checklist
+
+When testing on iOS Safari, verify:
+
+- [ ] Camera permission is granted and camera feed works
+- [ ] GPS location permission is granted and location is accurate
+- [ ] Device orientation/compass permission is granted
+- [ ] Compass heading provides accurate readings
+- [ ] Complete beacon placement workflow works end-to-end
+- [ ] App installs as PWA from iOS "Add to Home Screen"
+- [ ] All sensor errors show helpful iOS-specific messages
+
+### Android Chrome Testing
+
+For Android Chrome development testing, you can enable insecure origins:
+
+Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, enable it, add `http://192.168.10.96:3001`, relaunch Chrome, and then reopen the app.
+
+For production or normal demos, use HTTPS.
 
 Run validation:
 
@@ -63,6 +105,14 @@ npm run build
 ```
 
 Use Vercel's default install and build settings for Next.js.
+
+**Important for iOS Users**: Vercel provides automatic HTTPS, which is required for iOS Safari to access camera, GPS, and compass sensors.
+
+## Platform Compatibility
+
+- **iOS Safari 13+**: Full support with HTTPS required
+- **Android Chrome**: Full support with optional HTTP for development
+- **Desktop browsers**: Simulated compass, limited camera support
 
 ## Source Documents
 

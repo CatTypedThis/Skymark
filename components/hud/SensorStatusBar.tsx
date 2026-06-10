@@ -22,6 +22,36 @@ function statusClass(active: boolean, warning = false) {
   return cn("hud-chip", active && "hud-chip--ready", warning && "hud-chip--warn");
 }
 
+function getGPSLabel(locationStatus: LocationStatus): string {
+  switch (locationStatus) {
+    case "ready":
+      return "GPS fix";
+    case "requesting":
+      return "Acquiring GPS";
+    case "timeout":
+      return "GPS timeout";
+    case "blocked":
+      return "GPS blocked";
+    case "unsupported":
+      return "GPS unavailable";
+    default:
+      return "GPS";
+  }
+}
+
+function getCompassLabel(orientationStatus: OrientationStatus, heading: number | null): string {
+  if (orientationStatus === "requesting") {
+    return "Acquiring compass";
+  }
+  if (orientationStatus === "blocked") {
+    return "Compass blocked";
+  }
+  if (orientationStatus === "unsupported") {
+    return "Compass unavailable";
+  }
+  return heading === null ? "No heading" : `${compassPoint(heading)} ${Math.round(heading)} deg`;
+}
+
 export function SensorStatusBar({
   cameraStatus,
   locationStatus,
@@ -30,11 +60,13 @@ export function SensorStatusBar({
   stability,
   confidence,
 }: SensorStatusBarProps) {
-  const headingLabel = heading === null ? "No heading" : `${compassPoint(heading)} ${Math.round(heading)} deg`;
+  const headingLabel = getCompassLabel(orientationStatus, heading);
+  const gpsLabel = getGPSLabel(locationStatus);
   const degraded =
     confidence === "low" ||
     confidence === "unknown" ||
     locationStatus === "blocked" ||
+    locationStatus === "timeout" ||
     orientationStatus === "blocked" ||
     orientationStatus === "simulated";
 
@@ -51,9 +83,9 @@ export function SensorStatusBar({
           <Camera size={14} />
           {cameraStatus === "ready" ? "Camera live" : "Camera"}
         </span>
-        <span className={statusClass(locationStatus === "ready", locationStatus === "blocked")}>
+        <span className={statusClass(locationStatus === "ready", locationStatus === "blocked" || locationStatus === "timeout")}>
           <LocateFixed size={14} />
-          {locationStatus === "ready" ? "GPS fix" : "GPS"}
+          {gpsLabel}
         </span>
         <span className={statusClass(orientationStatus === "ready", orientationStatus === "blocked")}>
           <Compass size={14} />

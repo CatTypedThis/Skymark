@@ -35,6 +35,7 @@ import { useCameraStream } from "@/lib/sensors/use-camera-stream";
 import { useGeolocation } from "@/lib/sensors/use-geolocation";
 import { useOrientation } from "@/lib/sensors/use-orientation";
 import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
+import { getHTTPSRequiredMessage } from "@/lib/utils/platform";
 
 const ONBOARDING_KEY = "sky-beacon:onboarding-complete";
 
@@ -58,6 +59,7 @@ export function SkyBeaconApp() {
   const [pendingDraft, setPendingDraft] = useState<BeaconDraft | null>(null);
   const [replacing, setReplacing] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [httpsWarning, setHttpsWarning] = useState<string | null>(null);
 
   const locationAgeMs = location.fix ? Date.now() - location.fix.timestamp : undefined;
   const confidence = useMemo(
@@ -103,12 +105,34 @@ export function SkyBeaconApp() {
     setOnboardingComplete(window.localStorage.getItem(ONBOARDING_KEY) === "true");
     void refreshBeacons();
 
+    // Check HTTPS requirements for iOS
+    const httpsMessage = getHTTPSRequiredMessage();
+    if (httpsMessage) {
+      setHttpsWarning(httpsMessage);
+      showToast({
+        title: "HTTPS Required",
+        detail: httpsMessage,
+      });
+    }
+
     return () => {
       if (toastTimerRef.current) {
         window.clearTimeout(toastTimerRef.current);
       }
     };
-  }, [refreshBeacons]);
+  }, [refreshBeacons, showToast]);
+
+  // Auto-notify when sensors become ready during preview
+  useEffect(() => {
+    if (previewActive && location.status === "ready" && orientation.status === "ready") {
+      if (location.fix && orientation.heading !== null) {
+        showToast({
+          title: "Sensors ready",
+          detail: "GPS and compass are now active. You can confirm the beacon placement.",
+        });
+      }
+    }
+  }, [previewActive, location.status, orientation.status, location.fix, orientation.heading, showToast]);
 
   function completeOnboarding() {
     window.localStorage.setItem(ONBOARDING_KEY, "true");
@@ -124,7 +148,11 @@ export function SkyBeaconApp() {
   function startPreview() {
     requestPlacementSensors();
 
-    if (!location.fix || orientation.heading === null) {
+    // Check if sensors are blocked/unsupported/timeout, not just requesting
+    const locationBlocked = location.status === "blocked" || location.status === "unsupported" || location.status === "timeout";
+    const orientationBlocked = orientation.status === "blocked" || orientation.status === "unsupported";
+
+    if (locationBlocked || orientationBlocked) {
       showToast({
         title: "Sensor data needed",
         detail: "Grant GPS and compass access, then preview the beacon again.",
@@ -132,12 +160,22 @@ export function SkyBeaconApp() {
       return;
     }
 
+    // If sensors are requesting or ready, start preview
     setPreviewActive(true);
-    if (confidence === "low" || confidence === "unknown") {
-      showToast({
-        title: "Low confidence anchor",
-        detail: "Placement can continue, but GPS or heading quality is weak.",
-      });
+
+    // Only show warning if we have data but it's low quality
+    if ((location.fix || location.status === "requesting") && (orientation.heading !== null || orientation.status === "requesting")) {
+      if (confidence === "low" || confidence === "unknown") {
+        showToast({
+          title: "Low confidence anchor",
+          detail: "Placement can continue, but GPS or heading quality is weak.",
+        });
+      } else if (location.status === "requesting" || orientation.status === "requesting") {
+        showToast({
+          title: "Acquiring sensors",
+          detail: "GPS and compass are being acquired. Beacon preview will activate when ready.",
+        });
+      }
     }
   }
 
@@ -317,8 +355,8 @@ export function SkyBeaconApp() {
   }
 
   const mode = saving ? "saving" : previewActive ? "preview" : "normal";
-  const canPreview = camera.status !== "requesting" && !saving;
-  const canConfirm = previewActive && location.fix !== null && orientation.heading !== null && !saving;
+  const canPreview = !saving && camera.status !== "requesting";
+  const canConfirm = previewActive && !saving && location.fix !== null && orientation.heading !== null;
   const lowConfidence = confidence === "low" || confidence === "unknown";
   const calibrationVisible =
     orientation.status === "simulated" ||
@@ -332,6 +370,7 @@ export function SkyBeaconApp() {
         status={camera.status}
         error={camera.error}
         onRequestCamera={camera.requestCamera}
+        requiresHTTPS={camera.requiresHTTPS}
       />
 
       <div className="hud-layer">
@@ -395,10 +434,10 @@ export function SkyBeaconApp() {
           </aside>
         ) : null}
 
-        {location.error || orientation.error ? (
+        {httpsWarning || location.error || orientation.error ? (
           <aside className="sensor-warning">
             <AlertTriangle size={15} />
-            <span>{location.error ?? orientation.error}</span>
+            <span>{httpsWarning ?? location.error ?? orientation.error}</span>
           </aside>
         ) : null}
 
