@@ -145,6 +145,84 @@ export function SkyBeaconApp() {
     void orientation.requestOrientation();
   }
 
+  function handleCameraPermissionPress() {
+    if (camera.status === "ready") {
+      showToast(
+        {
+          title: "Camera permission already granted",
+          detail: "The camera stream is active.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    if (camera.status === "requesting") {
+      showToast(
+        {
+          title: "Camera permission pending",
+          detail: "Respond to the browser prompt to continue.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    void camera.requestCamera();
+  }
+
+  function handleLocationPermissionPress() {
+    if (location.status === "ready" && location.fix !== null) {
+      showToast(
+        {
+          title: "GPS permission already granted",
+          detail: "A GPS fix is active.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    if (location.status === "requesting") {
+      showToast(
+        {
+          title: "GPS permission pending",
+          detail: "Respond to the browser prompt to continue.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    location.requestLocation();
+  }
+
+  function handleCompassPermissionPress() {
+    if (orientation.status === "ready" && orientation.heading !== null) {
+      showToast(
+        {
+          title: "Compass permission already granted",
+          detail: "Compass heading is active.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    if (orientation.status === "requesting") {
+      showToast(
+        {
+          title: "Compass permission pending",
+          detail: "Respond to the browser prompt to continue.",
+        },
+        2800,
+      );
+      return;
+    }
+
+    void orientation.requestOrientation();
+  }
+
   function startPreview() {
     requestPlacementSensors();
 
@@ -381,6 +459,9 @@ export function SkyBeaconApp() {
           heading={orientation.heading}
           stability={orientation.stability}
           confidence={confidence}
+          onRequestCamera={handleCameraPermissionPress}
+          onRequestLocation={handleLocationPermissionPress}
+          onRequestOrientation={handleCompassPermissionPress}
         />
 
         <BeaconOverlay

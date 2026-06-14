@@ -6,8 +6,8 @@ export default function OfflinePage() {
         <p className="eyebrow">Sky Beacon</p>
         <h1>App shell available</h1>
         <p>
-          Network access is needed for account sign-in and saved beacons. Reconnect when you are ready to
-          synchronize anchors.
+          Saved beacons stay on this device. Reconnect when you are ready to refresh the app shell or open a
+          secure sensor session.
         </p>
       </div>
     </main>

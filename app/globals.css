@@ -210,6 +210,21 @@ button {
   text-transform: uppercase;
 }
 
+button.hud-chip {
+  appearance: none;
+  cursor: pointer;
+}
+
+button.hud-chip:hover {
+  border-color: rgba(110, 243, 220, 0.34);
+  background: rgba(110, 243, 220, 0.12);
+}
+
+button.hud-chip:focus-visible {
+  outline: 2px solid rgba(110, 243, 220, 0.66);
+  outline-offset: 2px;
+}
+
 .hud-chip--ready,
 .drawer-status-pill.ready {
   color: #e8fdf7;

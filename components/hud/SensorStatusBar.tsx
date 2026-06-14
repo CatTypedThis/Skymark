@@ -16,6 +16,9 @@ interface SensorStatusBarProps {
   heading: number | null;
   stability: HeadingStability;
   confidence: BeaconConfidence;
+  onRequestCamera: () => void;
+  onRequestLocation: () => void;
+  onRequestOrientation: () => void;
 }
 
 function statusClass(active: boolean, warning = false) {
@@ -59,6 +62,9 @@ export function SensorStatusBar({
   heading,
   stability,
   confidence,
+  onRequestCamera,
+  onRequestLocation,
+  onRequestOrientation,
 }: SensorStatusBarProps) {
   const headingLabel = getCompassLabel(orientationStatus, heading);
   const gpsLabel = getGPSLabel(locationStatus);
@@ -79,18 +85,36 @@ export function SensorStatusBar({
         <span>Sky Beacon</span>
       </div>
       <div className="status-scroll">
-        <span className={statusClass(cameraStatus === "ready")}>
+        <button
+          type="button"
+          className={statusClass(cameraStatus === "ready")}
+          onClick={onRequestCamera}
+          aria-label="Camera permission"
+          title="Request camera permission"
+        >
           <Camera size={14} />
           {cameraStatus === "ready" ? "Camera live" : "Camera"}
-        </span>
-        <span className={statusClass(locationStatus === "ready", locationStatus === "blocked" || locationStatus === "timeout")}>
+        </button>
+        <button
+          type="button"
+          className={statusClass(locationStatus === "ready", locationStatus === "blocked" || locationStatus === "timeout")}
+          onClick={onRequestLocation}
+          aria-label="GPS permission"
+          title="Request GPS permission"
+        >
           <LocateFixed size={14} />
           {gpsLabel}
-        </span>
-        <span className={statusClass(orientationStatus === "ready", orientationStatus === "blocked")}>
+        </button>
+        <button
+          type="button"
+          className={statusClass(orientationStatus === "ready", orientationStatus === "blocked")}
+          onClick={onRequestOrientation}
+          aria-label="Compass permission"
+          title="Request compass permission"
+        >
           <Compass size={14} />
           {headingLabel}
-        </span>
+        </button>
         <span className={statusClass(confidence === "high" || confidence === "medium", degraded)}>
           <Radio size={14} />
           {confidenceLabel(confidence)}

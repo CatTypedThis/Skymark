@@ -2,19 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeadingStability } from "@/lib/beacons/beacon-types";
-import { angularDifference, normalizeHeading } from "@/lib/geospatial/angles";
+import { angularDifference } from "@/lib/geospatial/angles";
 import { smoothHeading } from "./smoothing";
 import { detectPlatform } from "@/lib/utils/platform";
+import { usePlatform } from "@/lib/utils/use-platform";
+import { readHeadingFromOrientation } from "./orientation-heading";
 
 type PermissionResult = "granted" | "denied" | "prompt";
 
 type DeviceOrientationEventConstructorWithPermission = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<PermissionResult>;
-};
-
-type CompassOrientationEvent = DeviceOrientationEvent & {
-  webkitCompassHeading?: number;
-  webkitCompassAccuracy?: number;
 };
 
 export type OrientationStatus = "idle" | "requesting" | "ready" | "blocked" | "unsupported" | "simulated";
@@ -29,25 +26,6 @@ export interface OrientationState {
   error: string | null;
 }
 
-function readHeading(event: CompassOrientationEvent): { heading: number | null; accuracyLabel?: string } {
-  if (typeof event.webkitCompassHeading === "number") {
-    return {
-      heading: normalizeHeading(event.webkitCompassHeading),
-      accuracyLabel:
-        typeof event.webkitCompassAccuracy === "number" ? `${Math.round(event.webkitCompassAccuracy)} deg` : "iOS compass",
-    };
-  }
-
-  if (typeof event.alpha === "number") {
-    return {
-      heading: normalizeHeading(360 - event.alpha),
-      accuracyLabel: event.absolute ? "absolute" : "relative",
-    };
-  }
-
-  return { heading: null };
-}
-
 export function useOrientation() {
   const previousHeading = useRef<number | null>(null);
   const [state, setState] = useState<OrientationState>({
@@ -58,11 +36,11 @@ export function useOrientation() {
     isSimulated: false,
     error: null,
   });
-  const platform = detectPlatform();
+  const renderedPlatform = usePlatform();
 
   const attachListener = useCallback(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
-      const { heading, accuracyLabel } = readHeading(event as CompassOrientationEvent);
+      const { heading, accuracyLabel } = readHeadingFromOrientation(event);
       if (heading === null) {
         return;
       }
@@ -92,6 +70,22 @@ export function useOrientation() {
   const cleanupRef = useRef<null | (() => void)>(null);
 
   const requestOrientation = useCallback(async () => {
+    const currentPlatform = detectPlatform();
+
+    if (currentPlatform.requiresHTTPSForSensors) {
+      setState({
+        status: "blocked",
+        heading: null,
+        pitch: null,
+        stability: "unknown",
+        isSimulated: false,
+        error: currentPlatform.isIOS
+          ? "iOS Safari requires HTTPS for compass access. Please use a secure HTTPS connection."
+          : "Compass access requires HTTPS. Please use a secure HTTPS connection.",
+      });
+      return;
+    }
+
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
       setState({
         status: "simulated",
@@ -101,18 +95,6 @@ export function useOrientation() {
         accuracyLabel: "desktop simulation",
         isSimulated: true,
         error: null,
-      });
-      return;
-    }
-
-    if (platform.requiresHTTPSForSensors) {
-      setState({
-        status: "blocked",
-        heading: null,
-        pitch: null,
-        stability: "unknown",
-        isSimulated: false,
-        error: "iOS Safari requires HTTPS for compass access. Please use a secure HTTPS connection.",
       });
       return;
     }
@@ -136,7 +118,7 @@ export function useOrientation() {
         setState((current) => ({
           ...current,
           status: "blocked",
-          error: platform.isIOS && errorMessage.includes("not allowed")
+          error: currentPlatform.isIOS && errorMessage.includes("not allowed")
             ? "Compass permission must be triggered by a user interaction. Please tap the permission button directly."
             : errorMessage,
         }));
@@ -146,7 +128,7 @@ export function useOrientation() {
 
     cleanupRef.current?.();
     cleanupRef.current = attachListener();
-  }, [attachListener, platform.requiresHTTPSForSensors, platform.isIOS]);
+  }, [attachListener]);
 
   useEffect(() => {
     return () => cleanupRef.current?.();
@@ -155,6 +137,6 @@ export function useOrientation() {
   return {
     ...state,
     requestOrientation,
-    requiresHTTPS: platform.requiresHTTPSForSensors,
+    requiresHTTPS: renderedPlatform.requiresHTTPSForSensors,
   };
 }

@@ -16,6 +16,7 @@ interface CameraViewProps {
 
 export function CameraView({ videoRef, status, error, onRequestCamera, requiresHTTPS }: CameraViewProps) {
   const needsPrompt = status === "idle" || status === "blocked" || status === "unsupported";
+  const httpsMessage = "Camera access requires HTTPS. Please use a secure HTTPS connection.";
 
   return (
     <div className={cn("camera-layer", status !== "ready" && "camera-layer--fallback")}>
@@ -39,7 +40,7 @@ export function CameraView({ videoRef, status, error, onRequestCamera, requiresH
           <p>
             Sky Beacon uses the rear camera as the instrument surface. If the camera is not available,
             the app keeps this simulated backdrop for layout and beacon management.
-            {requiresHTTPS && " iOS Safari requires HTTPS for camera access."}
+            {requiresHTTPS && " Camera access requires HTTPS."}
           </p>
           {error ? <p className="permission-error">{error}</p> : null}
           {status !== "unsupported" && !requiresHTTPS ? (
@@ -48,11 +49,7 @@ export function CameraView({ videoRef, status, error, onRequestCamera, requiresH
               Start camera
             </Button>
           ) : null}
-          {requiresHTTPS ? (
-            <p className="permission-error">
-              iOS Safari requires HTTPS for camera access. Please use a secure HTTPS connection.
-            </p>
-          ) : null}
+          {requiresHTTPS && !error ? <p className="permission-error">{httpsMessage}</p> : null}
         </div>
       ) : null}
       {status === "requesting" ? (

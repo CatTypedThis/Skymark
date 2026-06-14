@@ -36,26 +36,38 @@ Run for phone testing on the same Wi-Fi:
 npm run dev:lan
 ```
 
-Then open the Wi-Fi URL from the phone. On this machine right now, that is:
+The LAN script starts Next on port 3001, discovers the computer's local IPv4 addresses, and automatically allows those hosts for Next.js development resources. Then open one of the printed Wi-Fi URLs from the phone:
 
 ```text
-http://192.168.10.96:3001
+http://<your-wifi-ip>:3001
 ```
 
-If the page does not load, verify the phone is on the same Wi-Fi network, disable phone VPN/private relay/cellular fallback, and allow Node/Next.js through Windows Firewall for private networks. The computer hostname is `TABLET-S99U1SKK`, but the numeric Wi-Fi IP is usually more reliable.
+The LAN HTTP URL is useful for layout, beacon drawer, and non-sensor flows. Camera, GPS, and compass APIs require a secure context, so plain `http://<your-wifi-ip>:3001` will show HTTPS guidance instead of opening the camera unless the browser has been explicitly configured to trust that development origin.
 
-### HTTPS Requirements for iOS Safari
+You can inspect the computed hosts without starting the dev server:
 
-**iOS Safari requires HTTPS for camera, GPS, and device orientation access.** This is a strict security requirement that cannot be bypassed.
+```powershell
+node scripts/dev-lan.mjs --print-origins
+```
 
-For iOS testing during development, you have several options:
+Use the network URL printed by `npm run dev:lan`, or run `ipconfig` and use the IPv4 address for the active Wi-Fi adapter. If you use a custom hostname, add it to `NEXT_ALLOWED_DEV_ORIGINS` in `.env.local` as a comma-separated value, then restart the dev server.
+
+If `npm run dev:lan` reports that port 3001 is already in use, stop the old dev server first. A stale server can keep serving an older Next config to the phone even after the code has been fixed.
+
+If the page loads but buttons do not respond, clear the phone browser's site data for the LAN URL, restart `npm run dev:lan`, and check the dev server log for blocked-origin warnings. If the page does not load, verify the phone is on the same Wi-Fi network, disable phone VPN/private relay/cellular fallback, and allow Node/Next.js through Windows Firewall for private networks. The computer hostname can work on some networks, but the numeric Wi-Fi IP is usually more reliable.
+
+### HTTPS Requirements for Camera and Sensors
+
+**Camera, GPS, and device orientation access require HTTPS or another browser-trusted secure context.** This is a browser security requirement that cannot be bypassed from app code. iOS Safari requires HTTPS; Android Chrome can use an insecure-origin exception for local development only.
+
+For full sensor testing during development, use one of these options:
 
 1. **Use ngrok or similar HTTPS tunneling** (Recommended):
    ```powershell
    npm install -g ngrok
-   ngrok http 3000
+   ngrok http 3001
    ```
-   Then use the provided HTTPS URL on your iOS device.
+   Then use the provided HTTPS URL on your iOS device while `npm run dev:lan` is running. Use port 3000 instead if you are running `npm run dev`.
 
 2. **Deploy to Vercel** for testing:
    - Push your code to GitHub
@@ -66,7 +78,7 @@ For iOS testing during development, you have several options:
    - Set up local HTTPS development with tools like `mkcert` or `local-ssl-proxy`
    - Note: iOS may still show certificate warnings
 
-For Android Chrome testing with HTTP, you can enable insecure origins in `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, but this does not work on iOS Safari.
+For Android Chrome testing with HTTP, you can enable insecure origins in `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, add the exact `http://<your-wifi-ip>:3001` origin, relaunch Chrome, and reopen the app. This does not work on iOS Safari.
 
 ### iOS Safari Testing Checklist
 
@@ -84,7 +96,7 @@ When testing on iOS Safari, verify:
 
 For Android Chrome development testing, you can enable insecure origins:
 
-Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, enable it, add `http://192.168.10.96:3001`, relaunch Chrome, and then reopen the app.
+Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, enable it, add the `http://<your-wifi-ip>:3001` URL, relaunch Chrome, and then reopen the app.
 
 For production or normal demos, use HTTPS.
 
