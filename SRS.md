@@ -1,12 +1,12 @@
 # Software Requirements Specification: Sky Beacon Camera App
 
-Version: 1.1  
-Source: [PRD.md](PRD.md)  
-Date: 2026-06-10
+Version: 1.4
+Source: [PRD.md](PRD.md)
+Date: 2026-06-19
 
 ## 1. Purpose
 
-This Software Requirements Specification defines the MVP requirements for Sky Beacon, an outdoor-first progressive web app that lets users place GPS-backed, sky-reaching beacons through a live camera interface.
+This Software Requirements Specification defines the MVP requirements and post-MVP anchoring direction for Sky Beacon, an outdoor-first progressive web app that lets users place GPS-backed, sky-reaching beacons through a live camera interface.
 
 This version is organized as requirement items. Each item includes a user story and acceptance criteria so the product can be implemented, tested, and reviewed without ambiguity.
 
@@ -57,16 +57,42 @@ The MVP includes:
 - Network access: allowed for the MVP demo.
 - Offline robustness: not required for MVP.
 
+### 2.4 Post-MVP Anchoring Direction
+
+The next major product phase should move beyond the fixed 100-meter-ahead MVP placement model. Fixed-distance camera placement may remain useful as a quick draft flow, but durable beacons should represent the intended real-world location through a camera-first experience. Accurate post-MVP placement should not require traditional map interaction in the primary flow.
+
+Future agents must understand the beacon as a vertical world marker with two related concepts: a durable ground/base anchor and a skyward visible column. The long-term product goal is for a beacon to remain accurate and durable even when the base is hidden behind terrain, trees, buildings, or other obstructions. In that situation, the app should not draw the hidden base as if it were visible; it should preserve the anchor and show, fade, clip, or imply only the visible skyward portion as the selected route can support.
+
+The recommended next direction is a dual-track path: keep the existing PWA as the short-term shareable demo and product-learning surface, while validating Google ARCore Geospatial as the first serious proof of accurate camera-based anchoring. Geoapify or equivalent map/location providers may enrich anchors with address, place, route, or nearby-context metadata after provider approval, but they must not be treated as the primary placement-accuracy system. Backend or service-side map/geospatial cross-reference may confirm, reject, enrich, or suggest corrections to draft anchors only after route and provider approval. A visible map view is a possible separate feature for inspection, browsing, confirmation, and adjustment, but it is not the required placement path.
+
+The first selected implementation slice is the Phased Core PWA Upgrade. The PWA should become a convincing concept demo that approaches the final product feeling within browser limits: larger and more sky-reaching beacon visuals, pitch-aware vertical behavior, better off-screen guidance, conservative obstruction cues, and clear confidence/provenance language. This first implementation spec should include the local PWA phases for visual scale/verticality, pitch behavior, conservative base hiding, off-screen guidance, confidence/provenance UI, and backward-compatible anchor model groundwork. Later PWA improvements may add map-backed metadata, hidden geospatial cross-reference, visible map inspection, or browser-accessible geospatial AR/VPS-like capabilities only after the relevant provider/platform evidence and approval gates are satisfied.
+
+For the first PWA concept-demo upgrade, placement should be ground/base-oriented. The user should be asked to aim at the intended beacon base or ground target, then preview and confirm a skyward column rising from that approximate base anchor. This does not mean the PWA has proven the exact ground plane, depth, or line of sight; it is an honest browser-limited interaction model that prepares the product for later AR/depth-based ground placement.
+
+Persistence remains a route-selection decision: local-first browser storage is the easier initial path, while backend/server-side storage, hybrid local cache plus server persistence, accounts, cloud sync, or shared beacons may be selected later after product, privacy, and security review. The camera overlay, ARCore/geospatial prototype, backend/service cross-reference, metadata enrichment, any visible map view, persistence model, confidence indicators, and validation plan must all use the same anchor model.
+
+Close-range camera recognition may be explored as a progressive enhancement for nearby beacons. It must not be treated as required baseline behavior until platform reliability, privacy, performance, and testing constraints are proven.
+
 ## 3. Definitions
 
 - Anchor: The stored geographic coordinate representing a beacon's ground position.
+- Anchor confidence: The app's estimate of whether the stored anchor represents the intended real-world location.
+- Anchor provenance: Metadata describing how a beacon's location was created or refined, such as camera placement, ARCore Geospatial placement, map cross-reference, metadata enrichment, map placement, map adjustment, or visual refinement.
+- ARCore Geospatial anchor: A post-MVP geospatial AR anchor created or validated through Google ARCore Geospatial or an approved equivalent real spatial anchoring system.
 - Beacon: A saved or previewed vertical marker rendered in the camera overlay.
-- Confidence: The app's estimate of whether location and heading data are trustworthy.
+- Beacon base: The lower point or ground-level origin of the beacon, tied to the durable anchor coordinate. It may be visible, hidden, clipped, or implied depending on obstruction evidence.
+- Beacon column: The tall skyward visual portion rising from the beacon base. It is the main long-distance guidance cue and may remain visible even when the base is obstructed.
+- Obstruction-aware rendering: Rendering that avoids showing hidden beacon portions through terrain, trees, buildings, or other occluders unless the system has evidence that those portions are visible.
+- Sensor confidence: The app's estimate of whether current GPS, heading, orientation, and related device readings are trustworthy.
 - Drawer: The compact panel used to view and manage saved beacons.
+- Geoapify metadata enrichment: Optional post-MVP provider data that may describe the area near an anchor, such as address, place, route, or nearby-context information, but does not by itself prove camera placement accuracy.
 - Heading: The compass direction the device is facing, in degrees.
+- Map-confirmed anchor: A beacon coordinate that has been placed or verified through a map interaction.
+- Map cross-reference: Backend or service-side validation of a beacon coordinate against map, geospatial, building, terrain, or points-of-interest data.
 - Off-screen indicator: A lightweight cue showing that a beacon is outside the current camera view.
 - Preview beacon: A temporary full beacon shown before placement confirmation.
 - Stability: A UI state derived from sensor availability, drift, and recent readings.
+- Visual refinement: A short-range camera-based signal that may improve local beacon alignment or confidence when reliable.
 
 ## 4. Requirement Priorities
 
@@ -205,6 +231,8 @@ Acceptance criteria:
 - The app distinguishes ready, degraded, low-confidence, and unavailable states.
 - The app avoids implying exact precision when sensor data is approximate.
 - Status indicators remain compact and readable over the camera view.
+- Beacon confidence/status vocabulary uses plain source labels plus separate confidence levels. Source labels include `Approximate`, `Map-backed`, `Map-confirmed`, `AR-anchored`, and `Visually refined`; confidence levels include `High`, `Medium`, `Low`, and `Unknown`.
+- Camera-view status avoids clutter. Full labels and explanations should appear only for the selected beacon, in brief warnings/status affordances, or in the drawer/selected-beacon controls.
 
 ### REQ-010: Contextual Calibration Prompt
 
@@ -242,6 +270,8 @@ User story: As a user confirming placement, I want the app to place the beacon a
 Acceptance criteria:
 
 - Given current latitude, longitude, and heading are available, when the user confirms placement, then the app calculates a destination coordinate 100 meters ahead.
+- The first PWA concept-demo upgrade treats this destination coordinate as the approximate beacon base anchor derived from the user's aim at the intended ground/base target.
+- The placement UI must not claim exact ground-plane, depth, terrain, building, or line-of-sight accuracy for this approximate base anchor.
 - The calculation accepts latitude, longitude, heading in degrees, and distance in meters.
 - The heading wraps correctly around 0 and 360 degrees.
 - The calculation accounts for Earth's curvature sufficiently for short-distance placement.
@@ -327,7 +357,9 @@ User story: As a user, I want to place a beacon even when GPS or compass confide
 Acceptance criteria:
 
 - Given GPS or heading confidence is weak but required data exists, when the user enters preview or confirms placement, then the app shows a clear low-confidence warning.
+- The selected first-slice PWA behavior is save-with-warning: weak confidence does not require retry and does not prevent saving when required data exists.
 - Low confidence does not block placement by itself.
+- Placement is blocked only when required location or heading data is completely unavailable or unusable.
 - Saved beacons include confidence metadata from placement.
 - Low-confidence beacon rendering is visually softened, marked, or otherwise distinguished.
 - The app does not claim precise placement when confidence is weak.
@@ -370,6 +402,8 @@ Acceptance criteria:
 
 - Saved and preview beacons render as luminous vertical columns.
 - Beacons include a glowing base, pulse ring, rise animation, or equivalent placement cue when appropriate.
+- The visual design preserves the distinction between the lower beacon base and the skyward beacon column.
+- A beacon is not represented as only a flat map pin, screen dot, or short marker unless a fallback state explicitly requires simplification.
 - Beacons remain visually upright.
 - Beacon colors are applied consistently to the pillar and supporting visual elements.
 - Beacons remain visible against bright skies, dark environments, and visually busy backgrounds.
@@ -383,9 +417,13 @@ User story: As a user, I want beacons to respond when I tilt my phone upward or 
 Acceptance criteria:
 
 - The app uses available device pitch or orientation data to adjust beacon vertical position or visible segment.
-- Looking upward reveals or emphasizes upper beacon portions.
+- Pitch behavior is relative to the beacon's estimated bearing and vertical extent; pitch does not make a beacon visible when the camera is aimed away from it.
+- Looking upward while the camera is aimed at or rotating into the beacon's bearing reveals or emphasizes upper beacon portions.
+- Looking downward reveals the beacon base only when the camera is estimated to be aimed at the beacon base and conservative obstruction rules do not hide it.
+- Looking straight ahead does not display the beacon base by default unless the estimated camera frame actually includes the base.
 - Looking downward does not make the beacon appear inverted or detached from its anchor.
-- If pitch data is unavailable, the app falls back to a stable non-pitch-aware rendering state.
+- If no part of the beacon's estimated vertical segment is inside the camera frame, the beacon itself is hidden and the off-screen indicator is used instead.
+- If pitch data is unavailable, noisy, or unsupported, the app falls back to a stable heading-only rendering state that does not claim vertical precision or definite base visibility.
 
 ### REQ-023: Conservative Obstruction Handling
 
@@ -395,11 +433,17 @@ User story: As a city user, I do not want the app to draw beacon bases through b
 
 Acceptance criteria:
 
-- The MVP does not render an obstructed ground base as if it is clearly visible.
+- The MVP does not render an obstructed ground/base anchor as if it is clearly visible.
 - If reliable obstruction data is unavailable, the lower beacon portion is clipped, faded, hidden, or visually implied.
+- Base visibility vocabulary uses four states: `Visible`, `Obstructed`, `Unknown`, and `Approximated`.
+- `Visible` means supporting evidence or conservative rendering rules allow the base to be shown.
+- `Obstructed` means supporting evidence or conservative rules indicate the base should not be drawn as visible.
+- `Unknown` means the app does not have enough evidence to decide base visibility.
+- `Approximated` means the PWA or selected route is making a conservative estimate without validated obstruction evidence.
 - The app may show or imply the skyward portion when the user looks in the correct direction.
 - The UI avoids claiming exact line-of-sight accuracy.
 - Obstruction handling can be approximate for MVP.
+- Long-term post-MVP routes should evaluate building, terrain, elevation, AR, or visual evidence that can make this behavior more accurate.
 
 ### REQ-024: Off-Screen Direction Indicator
 
@@ -426,6 +470,7 @@ Acceptance criteria:
 - Low-confidence beacons are visually distinct from high-confidence beacons.
 - Distant or peripheral beacons scale, fade, simplify, or otherwise reduce visual dominance.
 - Styling changes do not make beacons impossible to identify.
+- Confidence styling does not add persistent text labels to every beacon in the camera overlay.
 - The MVP does not show precise distance in the camera overlay unless accuracy is validated.
 
 ### REQ-026: No Misleading Distance Display
@@ -730,19 +775,26 @@ Acceptance criteria:
 - Changing panel or typography styling does not require changing beacon persistence.
 - The default MVP theme remains polished even if additional themes are not implemented.
 
-### REQ-048: Optional Map View
+### REQ-048: Optional Post-MVP Visible Map View
 
 Priority: P2
 
-User story: As a user, I may want a map view to place or adjust beacons more precisely when camera-only placement is not enough.
+User story: As a user, I may want a map view to inspect, confirm, or adjust beacons when I need a precision tool separate from the camera-first placement flow.
 
 Acceptance criteria:
 
-- If implemented, the map view is accessible without replacing the camera-first flow.
-- Map-created beacons use the same data model as camera-created beacons.
-- Map-adjusted beacons render correctly in the camera overlay.
-- The 3-beacon limit still applies to map-created beacons.
-- The replacement flow still applies when the beacon limit is reached.
+- If implemented, the visible map view is accessible without replacing the camera-first flow.
+- If implemented, the visible map view is treated as a full post-MVP feature rather than a temporary MVP stretch goal.
+- If implemented, the visible map view is not required for the primary camera placement flow.
+- If implemented, the visible map view is presented as an inspection, browsing, confirmation, or adjustment tool rather than the default product surface.
+- If implemented, map-created beacons use the same data model as camera-created beacons.
+- If implemented, map-adjusted beacons render correctly in the camera overlay.
+- If implemented, a camera-created beacon can be opened from the map and adjusted to the intended real-world location.
+- If implemented, a map-created beacon can be opened from the camera view and rendered at the correct bearing.
+- If implemented, the app records whether an anchor was camera-created, map-created, or map-adjusted.
+- If implemented, the UI communicates whether a beacon is approximate or map-confirmed.
+- If implemented, the 3-beacon limit still applies to map-created beacons.
+- If implemented, the replacement flow still applies when the beacon limit is reached.
 
 ### REQ-049: Optional WebXR Enhancement
 
@@ -756,6 +808,94 @@ Acceptance criteria:
 - If WebXR is added later, it is implemented as progressive enhancement.
 - Non-WebXR browsers retain GPS and heading-based behavior.
 - WebXR-specific code does not break the baseline PWA experience.
+
+### REQ-050: Post-MVP Close-Range Visual Refinement
+
+Priority: P2
+
+User story: As a user near a saved beacon, I want the camera view to refine the beacon's local alignment when recognition is reliable so the marker feels tied to the place around me.
+
+Acceptance criteria:
+
+- Visual refinement is optional and progressive; lack of support does not block post-MVP beacon anchoring or rendering.
+- The app only uses visual refinement when camera permission is granted and the browser/device can process the signal responsively.
+- The app distinguishes visual-refinement confidence from GPS, compass, and map confidence.
+- Visual refinement may improve local display alignment or confidence, but it must not silently rewrite a durable anchor without an explicit product rule.
+- Raw camera imagery is not persisted unless a future privacy review explicitly approves that storage.
+- Recognition failures, poor lighting, or ambiguous scenes fall back to GPS/map rendering without blank states or misleading precision.
+
+### REQ-051: Post-MVP Map Cross-Referenced Anchor Confirmation
+
+Priority: P2
+
+User story: As a user placing a beacon through the camera, I want the system to cross-reference the draft anchor against approved map or geospatial evidence so the app can improve confidence without pretending provider metadata proves exact camera aim.
+
+Acceptance criteria:
+
+- Camera-created draft anchors can be evaluated against map or geospatial data before they are treated as high-confidence durable anchors.
+- Cross-reference may happen through a backend service, a provider API, or a client-side geospatial data layer approved by a future implementation RFC.
+- Cross-reference results can confirm the draft coordinate, lower confidence, or suggest a corrected coordinate.
+- The app records when an anchor has been map-cross-referenced separately from when a user has manually confirmed or adjusted it in the visible map view.
+- The app does not silently move a user's saved beacon to a suggested correction without an explicit product rule.
+- If cross-reference is unavailable, slow, or inconclusive, the app falls back to approximate camera placement with honest confidence messaging.
+- Cross-reference or metadata enrichment does not claim ARCore/VPS-level placement accuracy unless an approved spatial anchoring route provides that evidence.
+- Provider calls, coordinate transmission, token handling, attribution, quotas, and privacy behavior require separate provider approval before implementation.
+
+### REQ-052: Post-MVP ARCore Geospatial Accuracy Prototype
+
+Priority: P2
+
+User story: As a user, I want future accurate beacon placement to work through the camera so I can place and recover markers without having to create them on a traditional map.
+
+Acceptance criteria:
+
+- If the post-MVP accuracy proof is pursued, Google ARCore Geospatial is the first recommended prototype route unless a later RFC accepts a stronger alternative.
+- If implemented, the ARCore Geospatial prototype is isolated from the existing PWA until a platform migration or integration route is explicitly approved.
+- If implemented, the prototype supports camera-based beacon placement and later recovery or re-rendering of a saved geospatial anchor in an outdoor demo location.
+- If implemented, the prototype records anchor source, coordinate, altitude when available, tracking state, VPS availability when available, confidence, timestamp, and fallback reason when relevant.
+- If implemented, the prototype preserves the beacon as a durable base anchor plus skyward column and documents whether base visibility or obstruction behavior is known, unknown, or approximated.
+- Provisional future decision, to be confirmed in the ARCore implementation spec: the prototype should require an AR-ready state before saving or labeling a beacon as `AR-anchored`. If ARCore tracking, geospatial state, VPS/demo-location readiness, or required permissions are not good enough, it should show guidance such as move, scan, wait, or try another location rather than creating a misleading AR anchor.
+- The exact AR-ready thresholds, fallback wording, and whether a separate `Approximate` PWA-style fallback is offered from the AR prototype must be confirmed before ARCore/native implementation.
+- If implemented, unsupported devices, poor tracking, VPS unavailability, denied permissions, quota failures, and slow network states are handled with clear degraded or unavailable states.
+- If implemented, ARCore-specific project files, SDK dependencies, Google Cloud/API setup, API keys, quotas, and native or Unity tooling are added only after explicit prototype approval.
+- Raw camera imagery is not persisted unless a future privacy review explicitly approves it.
+- The PWA remains a short-term demo/product shell unless a later platform decision replaces or integrates it.
+
+### REQ-053: Post-MVP Metadata Enrichment Provider Boundary
+
+Priority: P2
+
+User story: As a user, I want optional map/location metadata to give useful context about a beacon while preserving honest confidence about how accurately the beacon was placed.
+
+Acceptance criteria:
+
+- If implemented, metadata enrichment may attach address, place, route, nearby-context, or similar information to an anchor.
+- Geoapify is the first recommended low-cost metadata/context provider unless a later provider RFC selects another provider.
+- Metadata enrichment does not replace ARCore Geospatial or another approved spatial anchoring system for accurate camera-placement proof.
+- The app distinguishes metadata-enriched anchors from ARCore-geospatial, map-cross-referenced, map-confirmed, map-adjusted, visually refined, and approximate camera anchors.
+- If provider metadata is unavailable, slow, inconclusive, quota-limited, billing-disabled, or blocked by privacy settings, existing local beacon placement and rendering continue with honest degraded messaging.
+- Coordinates are not sent to a third-party provider or backend unless privacy behavior, provider terms, token handling, attribution, quota, and cost posture have been approved.
+
+### REQ-054: PWA Convincing Concept Demo Improvement Track
+
+Priority: P1
+
+User story: As a demo viewer or early user, I want the PWA beacons to feel much closer to the intended final skyward beacon experience even when placement remains approximate.
+
+Acceptance criteria:
+
+- The first post-MVP PWA implementation slice is the Phased Core PWA Upgrade: beacon visual scale/verticality, camera-frame-aware pitch response, conservative base hiding, off-screen guidance, confidence/provenance UI, and minimal backward-compatible anchor model groundwork.
+- First-slice PWA placement uses a ground/base-oriented interaction: guide the user to aim at the intended base or ground target, then preview the tall column from that approximate base anchor.
+- First-slice PWA confidence behavior uses save-with-warning: weak GPS, heading, or orientation confidence should produce clear warning/status treatment but should not block approximate placement when required data exists.
+- First-slice PWA confidence vocabulary uses plain user-facing source labels plus separate confidence levels, but it must be shown compactly so the camera view remains readable.
+- The PWA must label ground/base-oriented placement as approximate unless a later AR/depth, ARCore, map-confirmed, or other approved spatial route validates stronger accuracy.
+- PWA beacons are not left as small, always-fully-visible markers when the selected scope is a concept-demo upgrade.
+- The PWA clearly labels browser GPS/compass placement as approximate unless a selected spatial anchoring route provides stronger evidence.
+- The PWA improvement plan preserves future compatibility with anchor provenance, map-backed metadata, hidden geospatial cross-reference, optional visible map placement, ARCore-derived anchors, and visual refinement.
+- The first PWA implementation should keep data-model changes simple; richer true-to-concept anchor structures, provenance history, altitude, vertical extent, and base-visibility evidence are expected later when a selected route needs them.
+- Map-backed context or hidden cross-reference is not added until provider, token, quota, privacy, attribution, caching, and fallback behavior are approved.
+- AR/depth-based ground placement is a future implementation path. Browser-accessible VPS, WebXR, depth, visual positioning, or geospatial AR capabilities are treated as future research unless current platform evidence proves they are realistic and approved for implementation.
+- Any PWA precision improvement degrades safely to local approximate beacons when provider, platform, sensor, or network capability is unavailable.
 
 ## 6. Data Requirements
 
@@ -792,6 +932,15 @@ Recommended fields:
 | `placementDistanceMeters` | number | MVP default is 100. |
 | `locationAccuracyMeters` | number | GPS accuracy at placement if available. |
 | `headingAccuracy` | number or string | Heading accuracy or quality state if available. |
+| `anchorSource` | string | How the current anchor was created, such as `camera`, `arcore-geospatial`, `metadata-enriched`, `map-cross-referenced`, `map-created`, `map-confirmed`, `map-adjusted`, or `visual-refined`. |
+| `anchorConfidence` | string | User-facing confidence category for the current anchor position. |
+| `anchorProvider` | string | Optional provider or system name, such as `arcore-geospatial`, `geoapify`, or another approved source. |
+| `anchorProvenance` | object or array | Optional structured provenance or refinement history for future ARCore, metadata, map, or visual refinement flows. |
+| `anchorAltitudeMeters` | number | Optional altitude/elevation for future ARCore, terrain, or rooftop anchoring. |
+| `beaconVerticalExtentMeters` | number | Optional future representation of how high the beacon column should rise for rendering and visibility decisions. |
+| `baseVisibility` | string | Selected base-visibility state: `visible`, `obstructed`, `unknown`, or `approximated`, used only when supported by the selected route. UI may present these as `Visible`, `Obstructed`, `Unknown`, and `Approximated`. |
+
+For the first Phased Core PWA Upgrade, agents should add only minimal optional fields and pure render helpers needed for confidence/provenance display. They should not introduce a full nested anchor object, mandatory altitude fields, complete provenance history, or irreversible schema migration in this first slice.
 
 ### DATA-002: Persisted App State
 
@@ -807,6 +956,24 @@ Acceptance criteria:
 - The app does not require account identifiers for MVP state.
 - The app does not require server-backed state for MVP state.
 
+### DATA-003: Anchor Provenance and Refinement History
+
+Priority: P2
+
+User story: As a developer and reviewer, I want anchor records to explain how a beacon location was created and refined so camera, ARCore/geospatial, metadata, map, and future recognition features remain auditable.
+
+Acceptance criteria:
+
+- The app can distinguish camera-created, ARCore-geospatial, metadata-enriched, map-cross-referenced, map-created, map-adjusted, and visually refined anchors.
+- The app records enough metadata to explain the latest anchor confidence to the user.
+- The anchor model supports future history or audit fields without breaking existing MVP records.
+- The anchor model can evolve to represent altitude, vertical extent, and base visibility without making those fields mandatory for MVP records.
+- The first PWA upgrade may use minimal optional fields, but later PWA stages should move toward richer anchor semantics when map-backed, ARCore-derived, visual-refined, or obstruction-aware routes require them.
+- Legacy MVP records without provenance remain readable and are treated as approximate camera-created anchors.
+- The persistence layer validates provenance values and ignores malformed optional refinement metadata safely.
+- Metadata enrichment history is distinguishable from coordinate-changing provenance.
+- Suggested coordinate corrections remain distinguishable from accepted coordinate changes.
+
 ## 7. Non-Functional Requirements
 
 ### NFR-001: Privacy
@@ -819,9 +986,11 @@ Acceptance criteria:
 
 - Beacon coordinates are stored locally for the MVP.
 - Beacon coordinates are not transmitted to a backend for core MVP behavior.
+- Post-MVP provider or backend coordinate transmission requires explicit privacy and provider approval.
 - No account is required.
 - No cloud sync is required.
 - Permission needs are explained before or during requests.
+- Raw camera imagery is not persisted unless a future privacy review explicitly approves that storage.
 
 ### NFR-002: Reliability
 
@@ -864,6 +1033,23 @@ Acceptance criteria:
 - UI theme values are separate from beacon data.
 - Sensor state can be inspected without reading rendering code.
 - Future map placement can reuse the same beacon data model.
+- Future ARCore/geospatial prototype data can map into the same conceptual anchor model.
+- Provider integrations are isolated behind adapter or service boundaries rather than embedded directly in UI rendering code.
+
+### NFR-005: Provider and Platform Approval Boundaries
+
+Priority: P2
+
+User story: As a product owner, I want provider, platform, backend, and native-prototype choices to be explicit so the project does not accidentally take on cost, privacy, token, or maintenance obligations.
+
+Acceptance criteria:
+
+- ARCore SDK dependencies, native or Unity project files, Google Cloud/API setup, API keys, quotas, and supported-device assumptions are not introduced without explicit prototype approval.
+- Geoapify, MapTiler, Mapbox, Google Maps Platform, Supabase, Firebase, public OSM services, or equivalent providers are not introduced without provider approval.
+- Provider approval records pricing or free-tier posture, token handling, attribution and licensing requirements, privacy impact, quota behavior, and fallback behavior.
+- Backend/server-side persistence, accounts, cloud sync, shared beacons, or hybrid local/server storage are not introduced without explicit persistence-route approval.
+- Public OpenStreetMap Foundation tiles, public Nominatim, and public Overpass services are not used as production app dependencies.
+- CI and automated tests do not depend on live third-party provider calls.
 
 ## 8. MVP Acceptance Summary
 
@@ -938,6 +1124,19 @@ Recommended additional testing:
 - Locally saved beacons remain available after closing and reopening the installed PWA.
 - Demo viewers understand the product concept within the first minute.
 
+### 9.4 Post-MVP Anchoring Validation Gates
+
+Before implementing post-MVP anchoring work:
+
+1. Confirm whether the selected route is PWA demo improvement, ARCore Geospatial accuracy prototype, metadata enrichment, backend/service-side cross-reference, separate visible map UI, close-range visual refinement research, or deferral.
+2. Confirm persistence posture: local-first browser storage, backend/server-side persistence, hybrid local cache plus server persistence, persistence research only, or deferral.
+3. Confirm provider or platform posture, including setup obligations, pricing or free-tier limits, token handling, attribution, privacy impact, fallback behavior, and whether live provider calls can be mocked in tests.
+4. If ARCore Geospatial is selected, confirm native or Unity route, supported device availability, Google Cloud/API setup, quota posture, demo locations, VPS availability where relevant, and manual outdoor QA plan.
+5. If metadata enrichment or map cross-reference is selected, confirm that provider metadata is not presented as proof of exact camera-placement accuracy.
+6. Confirm whether the selected route treats obstruction-aware base visibility as unsupported, approximated, or validated by building, terrain, elevation, AR, or visual evidence.
+7. Confirm whether the selected PWA slice is visual/demo-only, local data-model groundwork, provider-backed metadata/cross-reference, optional visible map, browser geospatial AR/VPS research, or a staged hybrid.
+8. Confirm `technical-specification.md` is updated or explicitly supplemented before product-code implementation begins.
+
 ## 10. Traceability Matrix
 
 | PRD Area | SRS Items |
@@ -953,17 +1152,31 @@ Recommended additional testing:
 | Data model | REQ-036, DATA-001 |
 | Visual and interaction design | REQ-038 through REQ-041 |
 | Performance and reliability | REQ-042, REQ-043, NFR-002 |
-| Maintainability | REQ-044, REQ-046, REQ-047, NFR-004 |
-| Map stretch goal | REQ-048 |
+| Maintainability | REQ-044, REQ-046, REQ-047, NFR-004, NFR-005 |
+| Optional post-MVP visible map view | REQ-048, DATA-003 |
+| Post-MVP map cross-reference | REQ-051, DATA-003 |
+| Post-MVP ARCore/geospatial accuracy prototype | REQ-052, DATA-001, DATA-003, NFR-005 |
+| Post-MVP metadata enrichment | REQ-053, DATA-001, DATA-003, NFR-001, NFR-005 |
+| PWA concept demo improvement track | REQ-054, REQ-020 through REQ-026, DATA-003, NFR-005 |
 | Future WebXR enhancement | REQ-049 |
+| Close-range visual refinement | REQ-050, DATA-003 |
 | Privacy | NFR-001 |
 
 ## 11. Future Enhancements
 
-- Map view for beacon placement and adjustment.
+- ARCore Geospatial accuracy prototype for camera-based beacon placement and recovery.
+- PWA demo improvements that clarify approximate anchors, provenance, and confidence.
+- PWA beacon experience upgrades that make the web demo feel closer to the final skyward-column product while preserving accuracy honesty.
+- Geoapify or equivalent metadata enrichment for address, place, route, or nearby context after provider approval.
+- Possible separate map view for beacon inspection, placement, confirmation, and adjustment.
 - Multiple themes, starting with sci-fi and fantasy variants.
 - Automatic distance estimation.
-- More precise geospatial anchoring.
+- More precise geospatial anchoring through ARCore Geospatial or another approved real spatial anchoring system.
+- Map cross-reference and provider metadata for anchor context, confidence, and suggested corrections.
+- Future PWA precision improvements where realistic, including map-backed context and any validated browser-accessible VPS/geospatial AR route after provider/platform approval.
+- More accurate obstruction-aware rendering where the beacon base can be hidden by terrain, trees, or buildings while the skyward column remains useful.
+- AR/depth-based ground placement, including ARCore/native depth or browser-accessible depth/geospatial AR if proven realistic, so future implementations can validate the intended base more accurately than the first PWA approximation.
+- Close-range camera recognition for nearby visual refinement.
 - WebXR or native AR support.
 - User accounts and cloud sync.
 - Shared group beacons.
@@ -973,4 +1186,3 @@ Recommended additional testing:
 - Photo attachments.
 - Weather-aware beacon visuals.
 - Sound feedback and audio design.
-

@@ -1,12 +1,12 @@
 # Technical Specification: Sky Beacon Camera App
 
-Version: 1.1  
-Date: 2026-06-10  
+Version: 1.2
+Date: 2026-06-19
 Sources: [PRD.md](PRD.md), [SRS.md](SRS.md), [UI.html](UI.html)
 
 ## 1. Purpose
 
-Sky Beacon is a mobile-first PWA that lets users preview the real world through their camera and place GPS-backed sky beacons approximately 100 meters ahead of their current position.
+Sky Beacon is a mobile-first PWA that lets users preview the real world through their camera and place GPS-backed sky beacons approximately 100 meters ahead of their current position. Each beacon is conceptually a durable ground/base anchor with a tall skyward column; the MVP approximates this with browser GPS, heading, and conservative overlay rendering.
 
 The implementation prioritizes a polished, reliable frontend-only MVP that can deploy to Vercel without a separate backend, database, persistent disk, or server process. The app uses browser camera, geolocation, and orientation APIs, renders beacons as a DOM/CSS overlay, and persists saved beacons in browser `localStorage`.
 
@@ -46,6 +46,7 @@ The implementation prioritizes a polished, reliable frontend-only MVP that can d
 - Directional beacon rendering through the camera overlay based on bearing and heading.
 - Off-screen direction indicators.
 - Conservative visual obstruction handling by clipping or fading ground-level beacon portions.
+- Beacon visuals preserve the product concept of a ground/base anchor plus a tall skyward column rather than a flat pin.
 - Cached PWA app shell.
 - Responsive desktop fallback for development and demos.
 
@@ -198,13 +199,23 @@ export interface BeaconRecord {
 - Local beacon CRUD operations.
 - Toasts, drawer state, selected beacon state, and replacement flow.
 
+Confidence/status UI:
+
+- Use plain source labels plus separate confidence levels: `Approximate`, `Map-backed`, `Map-confirmed`, `AR-anchored`, `Visually refined`; and `High`, `Medium`, `Low`, `Unknown`.
+- Keep the camera overlay uncluttered by showing full confidence/status text only for the selected beacon, temporary warnings, or drawer/selected-beacon controls.
+- Do not show persistent source/confidence text labels on every beacon in the camera overlay.
+
 ## 8. Geospatial Model
 
 - Placement starts from the current GPS fix and normalized heading.
 - The MVP default placement distance is 100 meters.
+- The first PWA concept-demo upgrade should present placement as ground/base-oriented: the user aims at the intended beacon base or ground target, and the app derives an approximate base anchor from GPS, heading, and the configured placement distance.
+- This PWA base anchor remains approximate; the browser implementation must not claim exact ground-plane, depth, terrain contact, or line-of-sight accuracy.
 - `destinationPoint` calculates beacon latitude/longitude from current position, heading, and distance.
 - `bearingBetween` calculates the direction from the user to each saved beacon.
 - `mapBearingToOverlayX` maps bearing/heading differences into visible overlay coordinates or off-screen direction indicators.
+- The MVP does not have reliable building, terrain, or line-of-sight data. It should therefore avoid drawing a hidden ground/base anchor as if it were visible, while still allowing the skyward column to be clipped, faded, or implied.
+- Base visibility state vocabulary is `visible`, `obstructed`, `unknown`, and `approximated`; UI may title-case these states. `Unknown` means no reliable evidence, while `approximated` means a conservative browser-limited estimate.
 
 ## 9. PWA Behavior
 
@@ -228,6 +239,9 @@ Manual validation should cover onboarding, camera fallback, permission prompts, 
 ## 11. Risks and Assumptions
 
 - Sensor accuracy varies by browser and device; the MVP communicates confidence but cannot guarantee exact physical alignment.
+- The selected first-slice PWA confidence behavior is save-with-warning: weak confidence should create clear UI/status treatment and persisted confidence metadata, but should not block saving unless required location or heading data is unavailable or unusable.
+- Obstruction-aware accuracy and AR/depth-based ground placement are long-term product goals. The MVP uses conservative visual approximation and must not claim validated building, terrain, depth, or line-of-sight visibility.
+- Future ARCore/native planning should reconfirm the provisional AR-ready rule: do not save an `AR-anchored` beacon unless tracking, geospatial state, VPS/demo-location readiness, permissions, and confidence thresholds are met.
 - Device-local storage means users can lose beacons if they clear site data or switch browsers/devices.
 - Browser compatibility varies across camera, orientation, compass, haptics, and PWA installation behavior.
 - Outdoor usage should account for GPS drift, compass calibration, poor lighting, bright skies, and device performance differences.
