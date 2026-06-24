@@ -42,22 +42,27 @@ export const UPPER_COLUMN_ELEVATION_MIN_DEGREES = 18;
 export const HEADING_ONLY_BOTTOM_PERCENT = 24;
 
 /**
- * PITCH-SIGN SWITCH — see Addendum A (Phase 0.5 spike).
+ * PITCH-SIGN — verified by the Addendum A device spike (Android Chrome, 2026-06-24).
  *
- * `DeviceOrientationEvent.beta` is not stable across Android Chrome and iOS
- * Safari. The initial model assumes the W3C frame (beta 90 at horizon, beta
- * decreasing toward the ground, increasing toward the sky), which makes
- * `cameraElevationDegrees` positive (look up) / negative (look down) when
- * computed as `PITCH_NEUTRAL_BETA_DEGREES - pitchDegrees`.
+ * `DeviceOrientationEvent.beta` follows the W3C frame: beta ≈ 90 at the
+ * horizon, beta INCREASES (toward 180) when the top of the phone tilts back
+ * to aim at the sky, and beta DECREASES (toward 0) when aiming at the ground.
  *
- * If the Addendum A device spike proves the beta sign is reversed on the
- * primary Android Chrome target, flip this constant to `pitchDegrees -
- * PITCH_NEUTRAL_BETA_DEGREES` here and in the frame tests. This is the single
- * place that changes; the segment thresholds below stay the same. Per
- * SPEC-004 §8.3 this sign correction does not require an RFC amendment.
+ * Measured on the primary Android Chrome target:
+ *   horizon beta ≈ 84, aim-up beta ≈ 143, aim-down beta ≈ 36.
+ *
+ * So a positive elevation (aim up) maps to beta > 90, which requires
+ * `beta - 90` — NOT the `90 - beta` form the original §8.3 draft assumed.
+ * The earlier `90 - beta` produced the inverted symptom the spike caught
+ * ("base segment when looking up, upper when looking down").
+ *
+ * If a future device reports beta inverted relative to the W3C frame,
+ * flip the sign here and in the frame tests. This is the single place that
+ * changes; the segment thresholds below stay the same. Per SPEC-004 §8.3 a
+ * sign/neutral correction does not require an RFC amendment.
  */
 export function normalizeCameraElevation(pitchDegrees: number): number {
-  return PITCH_NEUTRAL_BETA_DEGREES - pitchDegrees;
+  return pitchDegrees - PITCH_NEUTRAL_BETA_DEGREES;
 }
 
 function clamp(value: number, min: number, max: number): number {
