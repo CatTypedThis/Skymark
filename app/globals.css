@@ -384,6 +384,44 @@ button.hud-chip:focus-visible {
   box-shadow: 0 0 24px var(--beam-soft);
 }
 
+/* --- Segmented column treatments (SPEC-004 Phase 3) --------------------- */
+
+/* Upper segment: column reaches taller into the sky, brighter cap. */
+.beacon-pillar--upper {
+  height: min(82svh, 680px);
+}
+.beacon-pillar--upper .beacon-cap {
+  background: color-mix(in srgb, var(--beam) 38%, rgba(0, 0, 0, 0.06));
+  box-shadow: inset 0 0 22px var(--beam), 0 0 34px var(--beam);
+}
+
+/* Base treatments: a distinct base ring only when the frame supports it. */
+.beacon-base-ring {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  width: 116px;
+  height: 36px;
+  transform: translateX(-50%);
+  border: 2px solid var(--beam);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--beam-soft), transparent 66%);
+  box-shadow: 0 0 38px var(--beam-soft), inset 0 0 24px var(--beam-soft);
+}
+
+.beacon-pillar--base-visible .beacon-base-ring {
+  opacity: 0.7;
+}
+.beacon-pillar--base-soft .beacon-base-ring {
+  opacity: 0.28;
+  filter: blur(1px);
+}
+/* When the base is hidden, the ::after ground glow is suppressed so the
+   column does not imply definite ground contact. */
+.beacon-pillar--base-hidden::after {
+  opacity: 0;
+}
+
 .beacon-cap {
   position: absolute;
   left: 50%;
@@ -463,6 +501,101 @@ button.hud-chip:focus-visible {
 .offscreen-indicator.right {
   right: 10px;
   flex-direction: row-reverse;
+}
+
+/* --- Debug panel (Addendum 1 scope addition, ?debug=1 gated) ----------- */
+
+.debug-panel {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  width: min(46vw, 230px);
+  max-height: 70svh;
+  padding: 10px 11px;
+  border: 1px solid rgba(110, 243, 220, 0.4);
+  border-radius: var(--radius);
+  background: rgba(5, 9, 10, 0.82);
+  backdrop-filter: blur(12px);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.debug-section {
+  display: grid;
+  gap: 3px;
+}
+
+.debug-title {
+  color: var(--aqua);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.debug-panel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 8px;
+  margin: 0;
+}
+
+.debug-panel dl div {
+  display: contents;
+}
+
+.debug-panel dt {
+  color: var(--muted);
+}
+
+.debug-panel dd {
+  margin: 0;
+  text-align: right;
+  word-break: break-all;
+}
+
+.debug-panel ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debug-panel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.debug-beacon-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-beacon-segment {
+  color: var(--aqua);
+  font-weight: 700;
+}
+
+.debug-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.debug-hint {
+  margin: 0;
+  color: var(--dim);
+  font-size: 9px;
+  font-style: italic;
 }
 
 .side-tools {
@@ -890,6 +1023,15 @@ button.hud-chip:focus-visible {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.editor-status {
+  margin: 0;
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .drawer-clear {

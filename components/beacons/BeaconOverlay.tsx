@@ -4,6 +4,8 @@ import type { BeaconColorId, BeaconConfidence, BeaconRecord } from "@/lib/beacon
 import type { LocationFix } from "@/lib/sensors/use-geolocation";
 import { bearingBetween } from "@/lib/geospatial/bearing";
 import { mapBearingToOverlayX } from "@/lib/geospatial/overlay-position";
+import { HEADING_ONLY_BOTTOM_PERCENT } from "@/lib/geospatial/beacon-frame";
+import { resolveRenderableAnchor } from "@/lib/beacons/renderable-anchor";
 import { BeaconPillar } from "./BeaconPillar";
 import { OffscreenIndicator } from "./OffscreenIndicator";
 
@@ -22,15 +24,6 @@ interface BeaconOverlayProps {
   onSelectBeacon: (beaconId: string) => void;
 }
 
-function pitchBottomPercent(pitch: number | null) {
-  if (pitch === null) {
-    return 24;
-  }
-
-  const clamped = Math.max(-45, Math.min(55, pitch));
-  return Math.max(12, Math.min(38, 24 - clamped * 0.22));
-}
-
 export function BeaconOverlay({
   beacons,
   preview,
@@ -41,7 +34,6 @@ export function BeaconOverlay({
   onSelectBeacon,
 }: BeaconOverlayProps) {
   const canRenderDirectional = location !== null && heading !== null;
-  const bottomPercent = pitchBottomPercent(pitch);
 
   return (
     <div className="beacon-overlay" aria-label="Beacon overlay">
@@ -51,7 +43,10 @@ export function BeaconOverlay({
           color={preview.color}
           confidence={preview.confidence}
           xPercent={50}
-          bottomPercent={bottomPercent}
+          bottomPercent={HEADING_ONLY_BOTTOM_PERCENT}
+          segment="middle"
+          baseTreatment="hidden"
+          statusLabel="Approximate"
           preview
         />
       ) : null}
@@ -65,13 +60,16 @@ export function BeaconOverlay({
               beacon.longitude,
             );
             const overlay = mapBearingToOverlayX(bearing, heading);
-            if (!overlay.visible) {
+            const renderable = resolveRenderableAnchor(beacon, overlay.visible, pitch);
+
+            if (renderable.frame.segment === "outside") {
               return (
                 <OffscreenIndicator
                   key={beacon.id}
                   name={beacon.name}
                   color={beacon.color}
                   direction={overlay.direction === "left" ? "left" : "right"}
+                  verticalHint={renderable.frame.verticalHint}
                 />
               );
             }
@@ -83,7 +81,10 @@ export function BeaconOverlay({
                 color={beacon.color}
                 confidence={beacon.confidence}
                 xPercent={overlay.xPercent}
-                bottomPercent={bottomPercent}
+                bottomPercent={renderable.frame.bottomPercent}
+                segment={renderable.frame.segment}
+                baseTreatment={renderable.frame.baseTreatment}
+                statusLabel={renderable.statusLabel}
                 selected={selectedBeaconId === beacon.id}
                 onSelect={() => onSelectBeacon(beacon.id)}
               />

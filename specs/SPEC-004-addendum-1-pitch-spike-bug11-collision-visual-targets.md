@@ -120,3 +120,29 @@ git status --short
 ```
 
 Expected result: documentation-only changes; no product code, dependencies, tokens, or configuration.
+
+## 6. Scope Addition: Gated Debug Panel
+
+Status: Added during implementation of SPEC-004 + this addendum.
+
+This slice adds a local-only diagnostic overlay that is outside SPEC-004's stated deliverables (which are optional anchor fields and pure render helpers). It is recorded here as a documented scope addition so the spec set stays honest, and because it directly serves the Addendum A pitch spike and all future device QA.
+
+### 6.1 What was added
+
+- `lib/debug/use-debug-mode.ts` — reads the `?debug=1` URL flag (off by default, re-evaluated on popstate).
+- `components/hud/DebugPanel.tsx` — local-only readout of camera/orientation status, heading, `beta` (pitch), stability, accuracy label, confidence, GPS lat/lon/accuracy, and per-beacon resolved segment. Nothing is transmitted (NFR-001).
+- `app/globals.css` — `.debug-panel` and child classes.
+- Wired into `components/SkyBeaconApp.tsx`, gated by `useDebugMode()`.
+
+### 6.2 Why it is in scope
+
+- It replaces the throwaway temporary readout the Addendum A spike would otherwise need, and remains reusable for every future sensor/frame device question.
+- It is strictly off by default, so it does not affect the normal experience, the demo view, or the Addendum C visual "done" screenshots (which must be taken with the panel off).
+- It adds no dependency, no provider, no backend, no native code, and no persisted state, so it does not trigger any SPEC-004 amendment condition.
+
+### 6.3 When to use it
+
+- Addendum A pitch spike: on (that is its purpose).
+- "Something is off with heading/position/beacon segment": flip on, read, flip off.
+- Daily testing / demo prep / Addendum C screenshots: off (see the real experience).
+

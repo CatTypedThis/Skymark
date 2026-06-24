@@ -10,8 +10,10 @@ import { BottomActionBar } from "@/components/hud/BottomActionBar";
 import { Reticle } from "@/components/hud/Reticle";
 import { SensorStatusBar } from "@/components/hud/SensorStatusBar";
 import { ToastMessage, ToastViewport } from "@/components/hud/ToastViewport";
+import { DebugPanel } from "@/components/hud/DebugPanel";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Button } from "@/components/ui/button";
+import { useDebugMode } from "@/lib/debug/use-debug-mode";
 import {
   clearAllBeacons,
   createBeacon,
@@ -47,6 +49,7 @@ export function SkyBeaconApp() {
   const camera = useCameraStream();
   const location = useGeolocation();
   const orientation = useOrientation();
+  const debugMode = useDebugMode();
   const toastTimerRef = useRef<number | null>(null);
 
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
@@ -464,6 +467,21 @@ export function SkyBeaconApp() {
           onRequestOrientation={handleCompassPermissionPress}
         />
 
+        {debugMode ? (
+          <DebugPanel
+            cameraStatus={camera.status}
+            location={location.fix}
+            heading={orientation.heading}
+            pitch={orientation.pitch}
+            orientationStatus={orientation.status}
+            stability={orientation.stability}
+            accuracyLabel={orientation.accuracyLabel}
+            confidence={confidence}
+            beacons={beacons}
+            directional={location.fix !== null && orientation.heading !== null}
+          />
+        ) : null}
+
         <BeaconOverlay
           beacons={beacons}
           preview={previewActive ? { color: selectedColor, confidence } : null}
@@ -492,7 +510,7 @@ export function SkyBeaconApp() {
           <section className="preview-tools" aria-label="Preview controls">
             <div>
               <p className="tiny-label">Beacon color</p>
-              <strong>Choose before saving</strong>
+              <strong>Aim at the beacon base, then save</strong>
             </div>
             <ColorPalette value={selectedColor} onChange={setSelectedColor} />
             {lowConfidence ? (
@@ -500,7 +518,12 @@ export function SkyBeaconApp() {
                 <AlertTriangle size={14} />
                 Approximate anchor: GPS or heading confidence is weak.
               </p>
-            ) : null}
+            ) : (
+              <p className="warning-text">
+                <AlertTriangle size={14} />
+                Approximate browser anchor — not a precise ground location.
+              </p>
+            )}
           </section>
         ) : null}
 

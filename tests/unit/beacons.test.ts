@@ -12,11 +12,19 @@ import {
 } from "@/lib/beacons/beacon-service";
 import {
   generatedBeaconName,
+  isAnchorSource,
   nextAvailableSlot,
+  normalizeAnchorFields,
   normalizeBeaconName,
   validateBeaconRecord,
 } from "@/lib/beacons/validation";
 import { deriveConfidence } from "@/lib/sensors/confidence";
+import { anchorStatusLabel, anchorSourceLabel } from "@/lib/beacons/anchor-presentation";
+import {
+  resolveAnchorConfidence,
+  resolveAnchorSource,
+  deriveBaseVisibility,
+} from "@/lib/beacons/renderable-anchor";
 
 function beacon(slot: 1 | 2 | 3): BeaconRecord {
   return {
@@ -145,5 +153,74 @@ describe("beacon utilities", () => {
     localStorage.setItem(BEACON_STORAGE_KEY, JSON.stringify([{ id: "", slot: 9 }, null]));
 
     expect(await listActiveBeacons()).toEqual([]);
+  });
+
+  it("normalizes legacy records to approximate camera anchors", async () => {
+    // A legacy record with no anchor fields (as produced by the pre-upgrade app).
+    const legacy = {
+      ...beacon(1),
+    };
+    delete (legacy as Record<string, unknown>).anchorSource;
+    delete (legacy as Record<string, unknown>).anchorConfidence;
+    localStorage.setItem(BEACON_STORAGE_KEY, JSON.stringify([legacy]));
+
+    const [loaded] = await listActiveBeacons();
+    expect(loaded.anchorSource).toBe("camera");
+    expect(loaded.anchorConfidence).toBe(loaded.confidence);
+  });
+
+  it("preserves valid anchor fields and rejects malformed ones on load", async () => {
+    const withMalformed = {
+      ...beacon(2),
+      anchorSource: "not-a-real-source",
+      anchorConfidence: "bogus",
+    };
+    localStorage.setItem(BEACON_STORAGE_KEY, JSON.stringify([withMalformed]));
+
+    const [loaded] = await listActiveBeacons();
+    // Malformed optional fields are dropped/normalized, not fatal.
+    expect(loaded.anchorSource).toBe("camera");
+    expect(loaded.anchorConfidence).toBe(loaded.confidence);
+  });
+
+  it("persists camera anchor source and confidence on newly created beacons", async () => {
+    const created = await createBeacon({ ...draft(), confidence: "low" }, 1);
+    expect(created.anchorSource).toBe("camera");
+    expect(created.anchorConfidence).toBe("low");
+  });
+});
+
+describe("anchor presentation helpers", () => {
+  it("maps anchor sources to plain user-facing labels", () => {
+    expect(anchorSourceLabel("camera")).toBe("Approximate");
+    expect(anchorSourceLabel("arcore-geospatial")).toBe("AR-anchored");
+    expect(anchorSourceLabel("map-confirmed")).toBe("Map-confirmed");
+  });
+
+  it("builds a compact two-part status label", () => {
+    expect(anchorStatusLabel("camera", "low")).toBe("Approximate / Low");
+    expect(anchorStatusLabel("camera", "high")).toBe("Approximate / High");
+  });
+
+  it("type-guards anchor source values", () => {
+    expect(isAnchorSource("camera")).toBe(true);
+    expect(isAnchorSource("nope")).toBe(false);
+    expect(isAnchorSource(123)).toBe(false);
+  });
+
+  it("normalizes malformed optional anchor fields by dropping them", () => {
+    expect(normalizeAnchorFields({ anchorSource: "camera", anchorConfidence: "high" })).toEqual({
+      anchorSource: "camera",
+      anchorConfidence: "high",
+    });
+    expect(normalizeAnchorFields({ anchorSource: "bad", anchorConfidence: "bad" })).toEqual({});
+  });
+
+  it("resolves renderable anchor defaults for legacy records", () => {
+    const legacy = { confidence: "medium" as const };
+    expect(resolveAnchorSource(legacy)).toBe("camera");
+    expect(resolveAnchorConfidence(legacy)).toBe("medium");
+    // The first PWA slice has no obstruction evidence, so visibility is derived.
+    expect(deriveBaseVisibility()).toBe("approximated");
   });
 });

@@ -1,10 +1,30 @@
 import { isBeaconColorId } from "./color-palette";
-import type { BeaconConfidence, BeaconRecord, BeaconSlot } from "./beacon-types";
+import type {
+  AnchorSource,
+  BeaconConfidence,
+  BeaconRecord,
+  BeaconSlot,
+} from "./beacon-types";
 
 export const BEACON_LIMIT = 3;
 export const DEFAULT_PLACEMENT_DISTANCE_METERS = 100;
 
 const CONFIDENCE_VALUES = new Set<BeaconConfidence>(["high", "medium", "low", "unknown"]);
+
+const ANCHOR_SOURCE_VALUES = new Set<AnchorSource>([
+  "camera",
+  "metadata-enriched",
+  "map-cross-referenced",
+  "map-created",
+  "map-confirmed",
+  "map-adjusted",
+  "arcore-geospatial",
+  "visual-refined",
+]);
+
+export function isAnchorSource(value: unknown): value is AnchorSource {
+  return typeof value === "string" && ANCHOR_SOURCE_VALUES.has(value as AnchorSource);
+}
 
 export function generatedBeaconName(slot: BeaconSlot): string {
   return `Beacon ${String(slot).padStart(2, "0")}`;
@@ -61,5 +81,27 @@ export function validateBeaconRecord(record: BeaconRecord): string[] {
     }
   }
 
+  // Optional anchor fields are validated separately and never invalidate an
+  // otherwise-valid record: malformed optional values are dropped during
+  // normalization rather than rejecting the whole beacon (SPEC-004 §7.3).
   return errors;
+}
+
+/**
+ * Strip malformed optional anchor fields so a legacy or hand-edited record
+ * with a bad `anchorSource`/`anchorConfidence` still loads. Returns the
+ * recognized optional fields only; missing/invalid ones are omitted.
+ */
+export function normalizeAnchorFields(record: {
+  anchorSource?: unknown;
+  anchorConfidence?: unknown;
+}): { anchorSource?: AnchorSource; anchorConfidence?: BeaconConfidence } {
+  const result: { anchorSource?: AnchorSource; anchorConfidence?: BeaconConfidence } = {};
+  if (isAnchorSource(record.anchorSource)) {
+    result.anchorSource = record.anchorSource;
+  }
+  if (isBeaconConfidence(record.anchorConfidence)) {
+    result.anchorConfidence = record.anchorConfidence;
+  }
+  return result;
 }

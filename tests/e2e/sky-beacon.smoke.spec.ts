@@ -378,3 +378,25 @@ test("keeps non-sensor controls interactive on insecure local HTTP", async ({ pa
   await expect(page.getByText("Camera unsupported")).toHaveCount(0);
   expectNoHydrationErrors(errors);
 });
+
+test("renders a legacy seeded beacon with approximate anchor status", async ({ page }) => {
+  // A record shaped like a pre-upgrade save: no anchorSource/anchorConfidence.
+  await reloadWithBeacons(page, [savedBeacon()]);
+
+  await page.getByRole("button", { name: "Open beacon drawer" }).click();
+  await expect(page.getByRole("heading", { name: "Beacon drawer" })).toBeVisible();
+  // Legacy records normalize to an approximate camera anchor (SPEC-004 §8.1).
+  // Scope to the drawer row so it does not collide with the editor status.
+  await expect(page.locator(".drawer-row").filter({ hasText: "Beacon 01" })).toContainText(
+    /Approximate \/ High/i,
+  );
+});
+
+test("shows approximate status in the selected-beacon editor", async ({ page }) => {
+  await reloadWithBeacons(page, [savedBeacon({ confidence: "low" })]);
+
+  await page.getByRole("button", { name: "Open beacon drawer" }).click();
+  await page.getByRole("button", { name: "Select Beacon 01" }).click();
+  // Editor surfaces the compact source/confidence status label.
+  await expect(page.locator(".editor-status")).toContainText(/Approximate \/ Low/i);
+});

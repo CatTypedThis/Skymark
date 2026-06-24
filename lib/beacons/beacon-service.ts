@@ -1,5 +1,11 @@
 import type { BeaconDraft, BeaconRecord, BeaconSlot, HeadingStability } from "./beacon-types";
-import { generatedBeaconName, normalizeBeaconName, validateBeaconRecord } from "./validation";
+import {
+  generatedBeaconName,
+  isBeaconConfidence,
+  normalizeAnchorFields,
+  normalizeBeaconName,
+  validateBeaconRecord,
+} from "./validation";
 
 export const BEACON_STORAGE_KEY = "sky-beacon:saved-beacons";
 
@@ -16,6 +22,8 @@ type StoredBeaconRecord = {
   locationAccuracyMeters?: unknown;
   headingAccuracy?: unknown;
   headingStability?: unknown;
+  anchorSource?: unknown;
+  anchorConfidence?: unknown;
   deletedAt?: unknown;
   created?: unknown;
   updated?: unknown;
@@ -55,6 +63,17 @@ function toBeaconRecord(value: unknown): BeaconRecord | null {
   const slot = Number(record.slot);
   const created = typeof record.created === "string" ? record.created : nowTimestamp();
   const updated = typeof record.updated === "string" ? record.updated : created;
+  const baseConfidence = isBeaconConfidence(record.confidence)
+    ? record.confidence
+    : (record.confidence as BeaconRecord["confidence"]);
+
+  // Normalize optional anchor fields. Malformed values are dropped; a missing
+  // source defaults to the local PWA's approximate "camera" anchor, and anchor
+  // confidence falls back to the sensor/placement confidence (SPEC-004 §8.1).
+  const anchorFields = normalizeAnchorFields(record);
+  const anchorSource = anchorFields.anchorSource ?? "camera";
+  const anchorConfidence = anchorFields.anchorConfidence ?? baseConfidence;
+
   const normalized: BeaconRecord = {
     id: typeof record.id === "string" ? record.id : "",
     slot: slot as BeaconSlot,
@@ -62,7 +81,7 @@ function toBeaconRecord(value: unknown): BeaconRecord | null {
     color: record.color as BeaconRecord["color"],
     latitude: Number(record.latitude),
     longitude: Number(record.longitude),
-    confidence: record.confidence as BeaconRecord["confidence"],
+    confidence: baseConfidence,
     placementHeading: maybeNumber(record.placementHeading),
     placementDistanceMeters: Number(record.placementDistanceMeters ?? 100),
     locationAccuracyMeters: maybeNumber(record.locationAccuracyMeters),
@@ -71,6 +90,8 @@ function toBeaconRecord(value: unknown): BeaconRecord | null {
       typeof record.headingStability === "string"
         ? (record.headingStability as HeadingStability)
         : undefined,
+    anchorSource,
+    anchorConfidence,
     deletedAt: typeof record.deletedAt === "string" && record.deletedAt.length > 0 ? record.deletedAt : undefined,
     created,
     updated,
@@ -106,6 +127,9 @@ function writeAllBeacons(beacons: BeaconRecord[]) {
 
 function draftRecord(draft: BeaconDraft, slot: BeaconSlot, existing?: BeaconRecord): BeaconRecord {
   const timestamp = nowTimestamp();
+  // Local PWA placement always produces an approximate "camera" anchor. The
+  // anchorConfidence mirrors the sensor/placement confidence in the first
+  // slice; the separate field prepares the model for future stronger sources.
   return {
     id: existing?.id ?? beaconId(),
     slot,
@@ -119,6 +143,8 @@ function draftRecord(draft: BeaconDraft, slot: BeaconSlot, existing?: BeaconReco
     locationAccuracyMeters: draft.locationAccuracyMeters,
     headingAccuracy: draft.headingAccuracy,
     headingStability: draft.headingStability ?? "unknown",
+    anchorSource: "camera",
+    anchorConfidence: draft.confidence,
     created: existing?.created ?? timestamp,
     updated: timestamp,
   };
