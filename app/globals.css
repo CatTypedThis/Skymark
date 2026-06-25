@@ -320,6 +320,10 @@ button.hud-chip:focus-visible {
 .beacon-overlay {
   position: absolute;
   inset: 0;
+  /* Clip the tall (3x viewport) world-space column to the camera window so
+     only the portion within the frame is visible — this is what makes the
+     beacon read as a real object partially in view. */
+  overflow: hidden;
   pointer-events: none;
 }
 
@@ -328,7 +332,8 @@ button.hud-chip:focus-visible {
   --beam-soft: rgba(110, 243, 220, 0.24);
   position: absolute;
   width: 64px;
-  height: min(68svh, 560px);
+  /* Height is set inline via --column-vh (300%); the element represents the
+     full world-space column. The overlay clips it to the visible window. */
   transform: translateX(-50%);
   border: 0;
   background: transparent;
@@ -337,20 +342,63 @@ button.hud-chip:focus-visible {
   filter: drop-shadow(0 0 18px var(--beam));
 }
 
+/*
+ * The column visual. The pillar element is 3x the viewport tall and anchored
+ * at its bottom (ground level); at the resting pose only the lower ~third is
+ * on screen. So the beam is a solid shaft rising from the column's bottom
+ * edge, brightest at the base and fading upward — NOT a diamond clipped to
+ * the top of the element. This guarantees a visible column in the on-screen
+ * lower region at rest, and a continuous shaft as the camera pans up.
+ */
+/*
+ * The column visual: a continuous glowing shaft filling the full world-space
+ * column (3x viewport), anchored at the element's bottom (the base). Brightest
+ * at the base and fading upward, so it reads as one tall object. Because the
+ * beam is tied to the full column height (not a fixed band), it slides
+ * seamlessly with bottomPercent as the camera pans — no hard edge, no jump.
+ *
+ * Geometry: ::before is height:100% of the 300% pillar, bottom:0 (the base).
+ * Gradient uses 0deg (bottom-up): solid beam near the base (0-8%), bright core
+ * to ~30%, fading to transparent by ~45% — repeated implicitly by the long
+ * fade so the upper column stays faintly visible as you pan up.
+ */
+/*
+ * The column visual: a continuous glowing shaft filling the full world-space
+ * column (3x viewport), anchored at the element's bottom (the base). The
+ * gradient keeps the shaft visibly bright across MOST of the column height
+ * (not just the bottom 45%), so as you pan up and the base leaves the screen,
+ * the upper shaft remains clearly visible — the beacon reads as a tall object
+ * you are now looking up, not something that vanishes.
+ */
 .beacon-pillar::before {
   content: "";
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: 14px;
+  width: 18px;
   height: 100%;
   transform: translateX(-50%);
   background:
-    linear-gradient(180deg, transparent 0%, var(--beam-soft) 10%, var(--beam) 40%, rgba(255, 255, 255, 0.92) 52%, var(--beam) 64%, var(--beam-soft) 90%, transparent 100%);
-  clip-path: polygon(50% 0, 86% 50%, 58% 100%, 42% 100%, 14% 50%);
-  opacity: 0.92;
+    linear-gradient(
+      0deg,
+      var(--beam) 0%,
+      rgba(255, 255, 255, 0.9) 2%,
+      var(--beam) 6%,
+      var(--beam) 55%,
+      var(--beam-soft) 78%,
+      transparent 95%
+    );
+  /* Tapered lens silhouette: wide at the base (y=100%), gently narrowing
+     toward the top (y=0%). Keeps width across most of the shaft. */
+  clip-path: polygon(50% 0, 70% 75%, 62% 100%, 38% 100%, 30% 75%);
+  opacity: 0.95;
 }
 
+/*
+ * Ground/base glow. Opacity is driven continuously by --base-strength (0..1),
+ * set inline from resolveBaseStrength(). The CSS transition smooths the fade
+ * so the glow never snaps on/off (was the source of the base/middle jump).
+ */
 .beacon-pillar::after {
   content: "";
   position: absolute;
@@ -363,7 +411,8 @@ button.hud-chip:focus-visible {
   border-radius: 50%;
   background: radial-gradient(ellipse, var(--beam-soft), transparent 66%);
   box-shadow: 0 0 38px var(--beam-soft), inset 0 0 24px var(--beam-soft);
-  opacity: 0.55;
+  opacity: calc(var(--base-strength, 1) * 0.55);
+  transition: opacity 240ms ease-out;
 }
 
 .beacon-pillar--soft {
@@ -374,28 +423,17 @@ button.hud-chip:focus-visible {
   opacity: 0.18;
 }
 
-.beacon-pillar--preview {
-  height: min(72svh, 610px);
-}
-
 .beacon-pillar--selected .beacon-label,
 .beacon-pillar--preview .beacon-label {
   border-color: color-mix(in srgb, var(--beam) 62%, white 12%);
   box-shadow: 0 0 24px var(--beam-soft);
 }
 
-/* --- Segmented column treatments (SPEC-004 Phase 3) --------------------- */
-
-/* Upper segment: column reaches taller into the sky, brighter cap. */
-.beacon-pillar--upper {
-  height: min(82svh, 680px);
-}
-.beacon-pillar--upper .beacon-cap {
-  background: color-mix(in srgb, var(--beam) 38%, rgba(0, 0, 0, 0.06));
-  box-shadow: inset 0 0 22px var(--beam), 0 0 34px var(--beam);
-}
-
-/* Base treatments: a distinct base ring only when the frame supports it. */
+/*
+ * Base ring: always rendered; opacity driven continuously by --base-strength
+ * so it fades in/out with the ground glow (no mount/unmount snap). Soft
+ * marker — no validated obstruction evidence (SPEC-004 §8.1 / REQ-023).
+ */
 .beacon-base-ring {
   position: absolute;
   left: 50%;
@@ -407,28 +445,29 @@ button.hud-chip:focus-visible {
   border-radius: 50%;
   background: radial-gradient(ellipse, var(--beam-soft), transparent 66%);
   box-shadow: 0 0 38px var(--beam-soft), inset 0 0 24px var(--beam-soft);
-}
-
-.beacon-pillar--base-visible .beacon-base-ring {
-  opacity: 0.7;
-}
-.beacon-pillar--base-soft .beacon-base-ring {
-  opacity: 0.28;
+  opacity: calc(var(--base-strength, 1) * 0.28);
   filter: blur(1px);
-}
-/* When the base is hidden, the ::after ground glow is suppressed so the
-   column does not imply definite ground contact. */
-.beacon-pillar--base-hidden::after {
-  opacity: 0;
+  transition: opacity 240ms ease-out;
 }
 
+/*
+ * Cap + label are pinned relative to the bottom of the column (ground band)
+ * rather than top: %, so they stay in the visible lower region regardless of
+ * the 3x element height. These positions target the resting/visible band.
+ */
+/*
+ * Cap: the diamond marker sitting partway up the visible column (NOT on the
+ * base). Positioned as a fraction of ONE viewport height above the element's
+ * bottom (the base), using calc against 100svh, so it reads as a marker on
+ * the shaft rather than overlapping the base glow.
+ */
 .beacon-cap {
   position: absolute;
   left: 50%;
-  top: 43%;
+  bottom: calc(100svh * 0.22);
   width: 42px;
   height: 42px;
-  transform: translate(-50%, -50%) rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
   border: 1px solid var(--beam);
   background: rgba(0, 0, 0, 0.18);
   box-shadow: inset 0 0 18px var(--beam-soft), 0 0 26px var(--beam-soft);
@@ -437,7 +476,7 @@ button.hud-chip:focus-visible {
 .beacon-label {
   position: absolute;
   left: 44px;
-  top: 36%;
+  bottom: calc(100svh * 0.28);
   min-width: 128px;
   max-width: 172px;
   padding: 8px 10px;
@@ -1138,7 +1177,7 @@ button.hud-chip:focus-visible {
 
   .beacon-label {
     left: -54px;
-    top: 32%;
+    bottom: calc(100svh * 0.3);
     min-width: 132px;
     text-align: center;
   }
@@ -1185,10 +1224,8 @@ button.hud-chip:focus-visible {
   0%,
   100% {
     transform: translateX(-50%) scale(0.96);
-    opacity: 0.42;
   }
   50% {
     transform: translateX(-50%) scale(1.08);
-    opacity: 0.85;
   }
 }

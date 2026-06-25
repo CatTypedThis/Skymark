@@ -196,59 +196,85 @@ The existing `confidenceLabel()` can keep its sensor/HUD wording if useful, but 
 
 Add a pure helper such as `lib/geospatial/beacon-frame.ts`.
 
-Suggested public contract:
+> **Superseded model note (2026-06-25):** The original §8.3 design described a
+> *discrete segment selector* (`base` / `middle` / `upper` / `outside`) keyed
+> off `cameraElevationDegrees = 90 - beta`. That model was abandoned during
+> implementation in favor of a **continuous world-space-column framing model**
+> driven directly by `DeviceOrientationEvent.beta`. The discrete `segment` /
+> `baseTreatment` fields and the `base`/`middle`/`upper`/`outside` CSS classes
+> no longer exist. The contract below is the operative one; the old segment
+> table is retained only as history. See Addendum 1 for the device-spike
+> rationale and the pitch-sign verification.
+
+**Continuous vertical-framing model (operative contract):**
+
+The beacon is a tall world-space column (`COLUMN_VH_PERCENT = 300` viewport-%).
+The **BASE rests at `BASE_BETA` (~30)** — the "look down at the ground in front
+of you" pose, near the bottom of the screen with the shaft rising upward.
+Panning up (increasing beta toward `TOP_BETA` ~160) slides the column downward
+through the frame: the base exits the bottom, the shaft fills the view, and the
+cap rises toward center. **Full strength is maintained from `BASE_BETA` to
+`FADE_START_BETA` (~155)** — there is no early fade; only past 155 does the
+column dim, fully out by `FADE_END_BETA` (~165). Panning below `BASE_BETA`
+keeps the base in view.
 
 ```ts
-export type BeaconFrameSegment = "base" | "middle" | "upper" | "outside";
-export type BeaconBaseTreatment = "visible" | "soft" | "hidden";
 export type PitchQuality = "measured" | "heading-only" | "unusable";
+export type VerticalHint = "raise" | "lower" | "center" | null;
 
 export interface BeaconFrameInput {
   horizontalVisible: boolean;
-  pitchDegrees: number | null;
+  pitchDegrees: number | null;  // raw DeviceOrientationEvent.beta
   baseVisibility: BaseVisibility;
 }
 
 export interface BeaconFrameResult {
-  segment: BeaconFrameSegment;
-  baseTreatment: BeaconBaseTreatment;
+  inView: boolean;            // any part of the column overlaps [0,100]
+  bottomPercent: number;      // live continuous offset of column bottom edge
+  baseStrength: number;       // continuous 0..1, drives --base-strength CSS var
   baseVisibility: BaseVisibility;
   pitchQuality: PitchQuality;
-  bottomPercent: number;
-  verticalHint: "raise" | "lower" | "center" | null;
+  verticalHint: VerticalHint;
 }
 ```
 
-Initial constants:
+Constants:
 
 ```ts
-export const DEFAULT_HORIZONTAL_FOV_DEGREES = 60;
-export const PITCH_NEUTRAL_BETA_DEGREES = 90;
-export const MAX_CAMERA_ELEVATION_DEGREES = 60;
-export const BASE_ELEVATION_MAX_DEGREES = -12;
-export const UPPER_COLUMN_ELEVATION_MIN_DEGREES = 18;
-export const HEADING_ONLY_BOTTOM_PERCENT = 24;
+export const COLUMN_VH_PERCENT = 300;        // 3x viewport column
+export const BASE_BETA = 30;                 // base rests here (look-down pose)
+export const TOP_BETA = 160;                 // cap reaches screen center here
+export const FADE_START_BETA = 155;          // no fade before this
+export const FADE_END_BETA = 165;            // fully out here
+export const BASE_BOTTOM_PERCENT = 88;       // base near bottom of screen at BASE_BETA
+export const TOP_BOTTOM_PERCENT = 50 - COLUMN_VH_PERCENT;  // -250, cap at center at TOP_BETA
+export const BOTTOM_PERCENT_PER_BETA =
+  (BASE_BOTTOM_PERCENT - TOP_BOTTOM_PERCENT) / (TOP_BETA - BASE_BETA);  // ~2.6
+export const HEADING_ONLY_BOTTOM_PERCENT = BASE_BOTTOM_PERCENT;
 ```
 
-Initial pitch interpretation:
+Resolution:
 
 ```ts
-cameraElevationDegrees = clamp(PITCH_NEUTRAL_BETA_DEGREES - pitchDegrees, -60, 60);
+// Verified pitch sign (Addendum A spike): elevation = beta - 90.
+export function normalizeCameraElevation(beta: number): number { return beta - 90; }
+export function betaToBottomPercent(beta: number): number {
+  return BASE_BOTTOM_PERCENT - (beta - BASE_BETA) * BOTTOM_PERCENT_PER_BETA;
+}
+export function resolveBaseStrength(beta: number): number {
+  if (beta <= FADE_START_BETA) return 1;          // full until 155
+  if (beta >= FADE_END_BETA) return 0;            // out by 165
+  return 1 - smoothstep(FADE_START_BETA, FADE_END_BETA, beta);
+}
 ```
 
-Initial segment rules:
+**`inView`** is true whenever the column `[bottomPercent, bottomPercent + COLUMN_VH_PERCENT]` overlaps the `[0, 100]` screen window — i.e. the column's top is below the screen top AND the column's bottom is above the screen bottom. Because the column is 3x viewport and rises from the base, the base sliding above the screen top does **not** eject the beacon; the shaft remains visible.
 
-| Condition | Segment | Base treatment | Vertical hint |
-| --- | --- | --- | --- |
-| Horizontal bearing is outside the FOV | `outside` | `hidden` | `center` |
-| Pitch is null or unusable | `middle` | `hidden` | `center` |
-| `cameraElevationDegrees <= BASE_ELEVATION_MAX_DEGREES` and base visibility is `visible` | `base` | `visible` | `lower` |
-| `cameraElevationDegrees <= BASE_ELEVATION_MAX_DEGREES` and base visibility is `approximated` | `base` | `soft` | `lower` |
-| `cameraElevationDegrees <= BASE_ELEVATION_MAX_DEGREES` and base visibility is `unknown` or `obstructed` | `middle` | `hidden` | `lower` |
-| `cameraElevationDegrees >= UPPER_COLUMN_ELEVATION_MIN_DEGREES` | `upper` | `hidden` | `raise` |
-| Otherwise | `middle` | `hidden` | `center` |
+**`verticalHint`**: `"raise"` when `beta >= FADE_END_BETA` (panned past the top), `"lower"` when `beta < BASE_BETA` (below the base), else `null`.
 
-If primary Android Chrome testing proves the beta sign is reversed, update `cameraElevationDegrees` in this helper and its tests. That does not require an RFC amendment unless the product behavior, dependency set, or approved scope changes.
+**Heading-only fallback** (`pitchDegrees === null`): rest at the base pose (`bottomPercent = BASE_BOTTOM_PERCENT`, `baseStrength = 1`). No false vertical precision.
+
+If a future device reports beta inverted relative to the verified W3C frame (beta increases toward the ground), flip the sign in `normalizeCameraElevation` and update the frame tests. That does not require an RFC amendment unless product behavior, the dependency set, or approved scope changes.
 
 ### 8.4 Renderable Beacon Helper
 

@@ -52,6 +52,20 @@ On a primary target device (Android Chrome, portrait, installed PWA mode preferr
 - If the measured frame means the §8.3 `90 - beta` form is inverted, correct the transform (e.g. toward `beta - 90`-style) and update the §8.3 constants and the matching tests. Per the SPEC-004 §8.3 footnote, a sign/neutral correction inside the pure helper and its tests does not require an RFC amendment.
 - Spike passes when, on the primary device, the three recorded poses map to the three intended segments with no manual sign fiddling left as an open question.
 
+> **Spike result (2026-06-24/25) + model supersession:** The spike confirmed the
+> W3C frame: horizon beta ≈ 84, aim-up ≈ 143, aim-down ≈ 36, so `elevation =
+> beta - 90` (the `90 - beta` draft was indeed inverted — it produced "base when
+> looking up"). However, during subsequent on-device iteration the **discrete
+> segment model itself was abandoned** in favor of a continuous world-space-column
+> framing model keyed directly off beta: the base rests at ~30 beta (the
+> look-down pose) and the column is visible (full strength, no fade) up to ~155
+> beta, fading out by ~165. The `base`/`middle`/`upper`/`outside` segments and
+> the `base-visible`/`base-soft`/`base-hidden` CSS classes no longer exist.
+> SPEC-004 §8.3 has been updated to the operative continuous contract; the
+> Addendum C acceptance targets referencing the old classes (§4.1/4.2) are
+> therefore untestable as written and superseded by "the column stays fully
+> visible from ~30 to ~155 beta and pans smoothly."
+
 ### 2.4 Stop / escalate
 
 - Stop and escalate (return for guidance) if the spike cannot be run on any physical Android device, or if `beta` is null/unsupported on the target device. In that case the slice should fall back to the heading-only branch (SPEC-004 §8.3 "Pitch is null or unusable → middle / hidden") as the default, and the pitch-aware states become best-effort.

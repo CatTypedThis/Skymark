@@ -1,7 +1,6 @@
 "use client";
 
 import type { BeaconConfidence, BeaconRecord, HeadingStability } from "@/lib/beacons/beacon-types";
-import type { BeaconFrameSegment } from "@/lib/geospatial/beacon-frame";
 import type { LocationFix } from "@/lib/sensors/use-geolocation";
 import type { CameraStatus } from "@/lib/sensors/use-camera-stream";
 import type { OrientationStatus } from "@/lib/sensors/use-orientation";
@@ -9,9 +8,12 @@ import { resolveRenderableAnchor } from "@/lib/beacons/renderable-anchor";
 
 export interface DebugBeaconView {
   beacon: Pick<BeaconRecord, "id" | "name" | "anchorSource" | "anchorConfidence" | "confidence">;
-  segment: BeaconFrameSegment;
-  visible: boolean;
-  xPercent: number;
+  /** Whether any part of the column is in the vertical camera window. */
+  inView: boolean;
+  /** Live continuous bottom offset (% of overlay). */
+  bottomPercent: number;
+  /** Continuous 0..1 base glow strength. */
+  baseStrength: number;
 }
 
 interface DebugPanelProps {
@@ -50,9 +52,9 @@ export function DebugPanel({
     const renderable = resolveRenderableAnchor(beacon, true, directional ? pitch : null);
     return {
       beacon,
-      segment: renderable.frame.segment,
-      visible: renderable.frame.segment !== "outside",
-      xPercent: 50,
+      inView: renderable.frame.inView,
+      bottomPercent: renderable.frame.bottomPercent,
+      baseStrength: renderable.frame.baseStrength,
     };
   });
 
@@ -123,7 +125,11 @@ export function DebugPanel({
             {views.map((view) => (
               <li key={view.beacon.id}>
                 <span className="debug-beacon-name">{view.beacon.name}</span>
-                <span className="debug-beacon-segment">{view.segment}</span>
+                <span className="debug-beacon-segment">
+                  {view.inView
+                    ? `y ${view.bottomPercent.toFixed(0)} b ${view.baseStrength.toFixed(2)}`
+                    : "off"}
+                </span>
               </li>
             ))}
           </ul>

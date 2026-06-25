@@ -2,11 +2,8 @@
 
 import type { CSSProperties } from "react";
 import type { BeaconColorId, BeaconConfidence } from "@/lib/beacons/beacon-types";
-import type {
-  BeaconBaseTreatment,
-  BeaconFrameSegment,
-} from "@/lib/geospatial/beacon-frame";
 import { getBeaconColor } from "@/lib/beacons/color-palette";
+import { BASE_BOTTOM_PERCENT } from "@/lib/geospatial/beacon-frame";
 import { cn } from "@/lib/utils";
 
 interface BeaconPillarProps {
@@ -14,9 +11,10 @@ interface BeaconPillarProps {
   color: BeaconColorId;
   confidence: BeaconConfidence;
   xPercent: number;
+  /** Live continuous vertical offset of the column's bottom edge (percent). */
   bottomPercent?: number;
-  segment?: BeaconFrameSegment;
-  baseTreatment?: BeaconBaseTreatment;
+  /** Continuous 0..1 base glow strength. Drives --base-strength. */
+  baseStrength?: number;
   /** Compact source/confidence status, e.g. "Approximate / Low". */
   statusLabel?: string;
   selected?: boolean;
@@ -29,9 +27,8 @@ export function BeaconPillar({
   color,
   confidence,
   xPercent,
-  bottomPercent = 24,
-  segment = "middle",
-  baseTreatment = "hidden",
+  bottomPercent = BASE_BOTTOM_PERCENT,
+  baseStrength = 1,
   statusLabel,
   selected = false,
   preview = false,
@@ -39,19 +36,12 @@ export function BeaconPillar({
 }: BeaconPillarProps) {
   const beaconColor = getBeaconColor(color);
   const lowConfidence = confidence === "low" || confidence === "unknown";
-  const isBaseVisible = baseTreatment === "visible";
-  const isBaseSoft = baseTreatment === "soft";
 
   return (
     <button
       type="button"
       className={cn(
         "beacon-pillar",
-        `beacon-pillar--segment-${segment}`,
-        isBaseVisible && "beacon-pillar--base-visible",
-        isBaseSoft && "beacon-pillar--base-soft",
-        !isBaseVisible && !isBaseSoft && "beacon-pillar--base-hidden",
-        segment === "upper" && "beacon-pillar--upper",
         selected && "beacon-pillar--selected",
         preview && "beacon-pillar--preview",
         lowConfidence && "beacon-pillar--soft",
@@ -60,17 +50,20 @@ export function BeaconPillar({
         {
           "--beam": beaconColor.hex,
           "--beam-soft": beaconColor.soft,
+          "--base-strength": baseStrength.toFixed(3),
+          "--column-vh": "300%",
           left: `${xPercent}%`,
           bottom: `${bottomPercent}%`,
+          height: "var(--column-vh)",
         } as CSSProperties
       }
       onClick={onSelect}
       aria-label={`${preview ? "Preview" : "Saved"} beacon ${name}`}
     >
       <span className="beacon-cap" aria-hidden="true" />
-      {baseTreatment !== "hidden" ? (
-        <span className="beacon-base-ring" aria-hidden="true" />
-      ) : null}
+      {/* Always rendered; opacity is driven by --base-strength so the base
+          glow fades smoothly as the camera pans, with no mount/unmount snap. */}
+      <span className="beacon-base-ring" aria-hidden="true" />
       <span className="beacon-label">
         <strong>{name}</strong>
         <span>{preview ? "Preview" : statusLabel ?? confidence}</span>
