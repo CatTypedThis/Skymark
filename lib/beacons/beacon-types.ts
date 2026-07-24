@@ -6,6 +6,18 @@ export type HeadingStability = "stable" | "degraded" | "unstable" | "unknown";
 
 export type BeaconSlot = 1 | 2 | 3;
 
+export type AnchorSource =
+  | "camera"
+  | "metadata-enriched"
+  | "map-cross-referenced"
+  | "map-created"
+  | "map-confirmed"
+  | "map-adjusted"
+  | "arcore-geospatial"
+  | "visual-refined";
+
+export type BaseVisibility = "visible" | "obstructed" | "unknown" | "approximated";
+
 export interface BeaconRecord {
   id: string;
   slot: BeaconSlot;
@@ -14,6 +26,8 @@ export interface BeaconRecord {
   latitude: number;
   longitude: number;
   confidence: BeaconConfidence;
+  anchorSource?: AnchorSource;
+  anchorConfidence?: BeaconConfidence;
   placementHeading?: number;
   placementDistanceMeters: number;
   locationAccuracyMeters?: number;
@@ -31,6 +45,8 @@ export interface BeaconDraft {
   latitude: number;
   longitude: number;
   confidence: BeaconConfidence;
+  anchorSource?: AnchorSource;
+  anchorConfidence?: BeaconConfidence;
   placementHeading: number;
   placementDistanceMeters: number;
   locationAccuracyMeters?: number;

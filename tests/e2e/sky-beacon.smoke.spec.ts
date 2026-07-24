@@ -378,3 +378,35 @@ test("keeps non-sensor controls interactive on insecure local HTTP", async ({ pa
   await expect(page.getByText("Camera unsupported")).toHaveCount(0);
   expectNoHydrationErrors(errors);
 });
+
+test("shows compact anchor source/confidence status in the drawer", async ({ page }) => {
+  const errors = collectHydrationErrors(page);
+
+  // Slot 1 is a legacy record with no anchor fields; it should load as a
+  // camera (Approximate) anchor. Slot 2 carries explicit low anchor fields.
+  const legacy = savedBeacon({ id: "legacy-1", slot: 1, name: "Harbor marker" });
+  delete legacy.anchorSource;
+  delete legacy.anchorConfidence;
+  const explicit = savedBeacon({
+    id: "explicit-1",
+    slot: 2,
+    name: "Trail head",
+    anchorSource: "camera",
+    anchorConfidence: "low",
+  });
+  await reloadWithBeacons(page, [legacy, explicit]);
+
+  await page.getByRole("button", { name: "Open beacon drawer" }).click();
+  await expect(page.getByRole("heading", { name: "Beacon drawer" })).toBeVisible();
+
+  // Legacy record normalizes to a camera (Approximate) anchor with confidence
+  // derived from the existing field.
+  await expect(page.getByText("Harbor marker")).toBeVisible();
+  await expect(page.getByText("Approximate / High")).toBeVisible();
+
+  // Explicit low anchor fields render as Approximate / Low.
+  await expect(page.getByText("Trail head")).toBeVisible();
+  await expect(page.getByText("Approximate / Low")).toBeVisible();
+
+  expectNoHydrationErrors(errors);
+});
