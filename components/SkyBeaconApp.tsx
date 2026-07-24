@@ -241,27 +241,32 @@ export function SkyBeaconApp() {
     // If sensors are requesting or ready, start preview
     setPreviewActive(true);
 
-    // Only show warning if we have data but it's low quality
     if ((location.fix || location.status === "requesting") && (orientation.heading !== null || orientation.status === "requesting")) {
-      if (confidence === "low" || confidence === "unknown") {
+      if (lowConfidence) {
+        // Weak GPS or heading is a warning, not a block: confirmation stays
+        // available whenever a usable GPS fix and heading exist (ticket 02).
         showToast({
           title: "Low confidence anchor",
-          detail: "Placement can continue, but GPS or heading quality is weak.",
+          detail: "Aim at the base. You can still place an approximate beacon, but it may be less precise.",
         });
-      } else if (location.status === "requesting" || orientation.status === "requesting") {
+      } else if (!hasPlacementReadings && (location.status === "requesting" || orientation.status === "requesting")) {
         showToast({
           title: "Acquiring sensors",
-          detail: "GPS and compass are being acquired. Beacon preview will activate when ready.",
+          detail: "Point toward the target. GPS and compass are being acquired; preview will activate when ready.",
         });
       }
     }
   }
 
   function buildDraft(): BeaconDraft | null {
+    // Save is blocked until a usable GPS fix and heading exist (SPEC-004 §7.1).
+    // Low confidence does NOT block — it only produces a warning (ticket 02).
     if (!location.fix || orientation.heading === null) {
       return null;
     }
 
+    // Saved coordinates use the current GPS position, the normalized heading,
+    // and the default 100-meter destination model (SPEC-004 §7.1).
     const heading = normalizeHeading(orientation.heading);
     const destination = destinationPoint(
       location.fix.latitude,
@@ -270,11 +275,16 @@ export function SkyBeaconApp() {
       DEFAULT_PLACEMENT_DISTANCE_METERS,
     );
 
+    // New and replacement anchors record a camera source and the current
+    // placement confidence (ticket 02; SPEC-004 §8.1). The resulting anchor is
+    // approximate and makes no exact ground-plane/depth/line-of-sight claim.
     return {
       color: selectedColor,
       latitude: destination.latitude,
       longitude: destination.longitude,
       confidence,
+      anchorSource: "camera",
+      anchorConfidence: confidence,
       placementHeading: heading,
       placementDistanceMeters: DEFAULT_PLACEMENT_DISTANCE_METERS,
       locationAccuracyMeters: location.fix.accuracy,
@@ -434,8 +444,13 @@ export function SkyBeaconApp() {
 
   const mode = saving ? "saving" : previewActive ? "preview" : "normal";
   const canPreview = !saving && camera.status !== "requesting";
-  const canConfirm = previewActive && !saving && location.fix !== null && orientation.heading !== null;
+  // A save needs a usable GPS fix and a heading; confidence does not gate it.
+  const hasPlacementReadings = location.fix !== null && orientation.heading !== null;
+  const canConfirm = previewActive && !saving && hasPlacementReadings;
   const lowConfidence = confidence === "low" || confidence === "unknown";
+  // Confirmation is blocked only when a required GPS fix or heading is missing;
+  // low confidence alone does not block (SPEC-004 §7.1, ticket 02).
+  const missingReadings = previewActive && !canConfirm;
   const calibrationVisible =
     orientation.status === "simulated" ||
     orientation.status === "blocked" ||
@@ -490,15 +505,25 @@ export function SkyBeaconApp() {
 
         {previewActive ? (
           <section className="preview-tools" aria-label="Preview controls">
+            <p className="tiny-label">Point the phone at the base or ground target</p>
             <div>
               <p className="tiny-label">Beacon color</p>
-              <strong>Choose before saving</strong>
+              <strong>Approximate anchor</strong>
+              <small className="approximate-note">
+                Saved from your camera at this GPS + heading. Not an exact ground, depth, terrain, or
+                line-of-sight fix.
+              </small>
             </div>
             <ColorPalette value={selectedColor} onChange={setSelectedColor} />
-            {lowConfidence ? (
+            {missingReadings ? (
               <p className="warning-text">
                 <AlertTriangle size={14} />
-                Approximate anchor: GPS or heading confidence is weak.
+                A GPS fix and compass heading are required to save. Grant both, then confirm.
+              </p>
+            ) : lowConfidence ? (
+              <p className="warning-text">
+                <AlertTriangle size={14} />
+                Low confidence — you can still place this approximate beacon, but it may be less precise.
               </p>
             ) : null}
           </section>
