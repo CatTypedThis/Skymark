@@ -7,11 +7,13 @@ import { BeaconOverlay } from "@/components/beacons/BeaconOverlay";
 import { ColorPalette } from "@/components/beacons/ColorPalette";
 import { CameraView } from "@/components/camera/CameraView";
 import { BottomActionBar } from "@/components/hud/BottomActionBar";
+import { DebugPanel } from "@/components/hud/DebugPanel";
 import { Reticle } from "@/components/hud/Reticle";
 import { SensorStatusBar } from "@/components/hud/SensorStatusBar";
 import { ToastMessage, ToastViewport } from "@/components/hud/ToastViewport";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { Button } from "@/components/ui/button";
+import { useDebugMode } from "@/lib/debug/use-debug-mode";
 import {
   clearAllBeacons,
   createBeacon,
@@ -47,6 +49,7 @@ export function SkyBeaconApp() {
   const camera = useCameraStream();
   const location = useGeolocation();
   const orientation = useOrientation();
+  const debugMode = useDebugMode();
   const toastTimerRef = useRef<number | null>(null);
 
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
@@ -493,6 +496,21 @@ export function SkyBeaconApp() {
         />
 
         <Reticle />
+
+        {debugMode ? (
+          <DebugPanel
+            cameraStatus={camera.status}
+            location={location.fix}
+            heading={orientation.heading}
+            pitch={orientation.pitch}
+            orientationStatus={orientation.status}
+            stability={orientation.stability}
+            accuracyLabel={orientation.accuracyLabel}
+            confidence={confidence}
+            beacons={beacons}
+            directional={location.fix !== null && orientation.heading !== null}
+          />
+        ) : null}
 
         <div className="side-tools" aria-label="Sensor tools">
           <Button variant="secondary" size="icon" onClick={requestPlacementSensors} aria-label="Request GPS and compass">

@@ -123,6 +123,7 @@ button {
   left: max(14px, env(safe-area-inset-left));
   right: max(14px, env(safe-area-inset-right));
   top: max(12px, env(safe-area-inset-top));
+  z-index: 5;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -245,6 +246,7 @@ button.hud-chip:focus-visible {
   top: 44%;
   width: min(46vw, 190px);
   aspect-ratio: 1;
+  z-index: 5;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -326,19 +328,30 @@ button.hud-chip:focus-visible {
 .beacon-pillar {
   --beam: var(--aqua);
   --beam-soft: rgba(110, 243, 220, 0.24);
+  /* Continuous 0..1 base glow strength from resolveBeaconFrame (via
+     resolveRenderableAnchor). 1.0 at the base pose, fading to 0 as the camera
+     pans past the base region. Never negative. */
+  --base-strength: 1;
   position: absolute;
   width: 64px;
-  height: min(68svh, 560px);
+  /* The beacon is a tall world-space column (COLUMN_VH_PERCENT = 300): 3x the
+     overlay height. bottomPercent (the inline `bottom`) positions its base edge;
+     the shaft rises upward, so it stays materially taller than the old marker
+     and slides through the frame as device pitch changes (ticket 03). */
+  height: 300svh;
   transform: translateX(-50%);
   border: 0;
   background: transparent;
   color: var(--ink);
   pointer-events: auto;
   filter: drop-shadow(0 0 18px var(--beam));
+  /* No z-index: the tall column stacks by DOM order within .hud-layer, below
+     the reticle / sensor bar / side tools (explicit z-index 5) and the dock /
+     preview tools / calibration / warnings / debug panel (z-index >= 6). This
+     keeps the 300svh shaft from covering any interactive HUD affordance. */
 }
 
-.beacon-pillar::before {
-  content: "";
+.beacon-shaft {
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -346,7 +359,7 @@ button.hud-chip:focus-visible {
   height: 100%;
   transform: translateX(-50%);
   background:
-    linear-gradient(180deg, transparent 0%, var(--beam-soft) 10%, var(--beam) 40%, rgba(255, 255, 255, 0.92) 52%, var(--beam) 64%, var(--beam-soft) 90%, transparent 100%);
+    linear-gradient(180deg, transparent 0%, var(--beam-soft) 6%, var(--beam) 30%, rgba(255, 255, 255, 0.92) 44%, var(--beam) 58%, var(--beam-soft) 92%, transparent 100%);
   clip-path: polygon(50% 0, 86% 50%, 58% 100%, 42% 100%, 14% 50%);
   opacity: 0.92;
 }
@@ -363,7 +376,9 @@ button.hud-chip:focus-visible {
   border-radius: 50%;
   background: radial-gradient(ellipse, var(--beam-soft), transparent 66%);
   box-shadow: 0 0 38px var(--beam-soft), inset 0 0 24px var(--beam-soft);
-  opacity: 0.55;
+  /* Base glow opacity scales continuously with --base-strength so unknown or
+     obstructed base visibility is never rendered as definite ground contact. */
+  opacity: calc(0.55 * var(--base-strength));
 }
 
 .beacon-pillar--soft {
@@ -371,11 +386,7 @@ button.hud-chip:focus-visible {
 }
 
 .beacon-pillar--soft::after {
-  opacity: 0.18;
-}
-
-.beacon-pillar--preview {
-  height: min(72svh, 610px);
+  opacity: calc(0.18 * var(--base-strength));
 }
 
 .beacon-pillar--selected .beacon-label,
@@ -384,10 +395,18 @@ button.hud-chip:focus-visible {
   box-shadow: 0 0 24px var(--beam-soft);
 }
 
+.beacon-pillar--hint-raise .beacon-cap,
+.beacon-pillar--hint-lower .beacon-cap {
+  animation: beaconNudge 1.8s ease-in-out infinite;
+}
+
 .beacon-cap {
   position: absolute;
   left: 50%;
-  top: 43%;
+  /* Cap sits near the top of the visible portion of the column so it reads as
+     the column's crown when the shaft fills the frame. Viewport units because
+     the pillar element is 300svh tall (percentage would land off-screen). */
+  top: 24svh;
   width: 42px;
   height: 42px;
   transform: translate(-50%, -50%) rotate(45deg);
@@ -396,10 +415,26 @@ button.hud-chip:focus-visible {
   box-shadow: inset 0 0 18px var(--beam-soft), 0 0 26px var(--beam-soft);
 }
 
+.beacon-hint {
+  position: absolute;
+  left: 50%;
+  top: 14svh;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--beam);
+  text-shadow: 0 0 12px var(--beam-soft);
+  pointer-events: none;
+}
+
 .beacon-label {
   position: absolute;
   left: 44px;
-  top: 36%;
+  /* The pillar element is 300svh tall, so a percentage `top` would resolve
+     against that and land off-screen. Anchor the label to the visible part of
+     the column in viewport units instead, near screen center so it stays
+     readable while the shaft pans. */
+  top: 32svh;
   min-width: 128px;
   max-width: 172px;
   padding: 8px 10px;
@@ -465,10 +500,22 @@ button.hud-chip:focus-visible {
   flex-direction: row-reverse;
 }
 
+.offscreen-hint {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--beam);
+}
+
+.offscreen-indicator--hint-raise .offscreen-hint,
+.offscreen-indicator--hint-lower .offscreen-hint {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--beam) 40%, transparent);
+}
+
 .side-tools {
   position: absolute;
   right: max(14px, env(safe-area-inset-right));
   top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+  z-index: 5;
   display: grid;
   gap: 10px;
   pointer-events: auto;
@@ -1004,7 +1051,9 @@ button.hud-chip:focus-visible {
 
   .beacon-label {
     left: -54px;
-    top: 32%;
+    /* Keep viewport-relative so the label stays on the visible part of the
+       300svh-tall pillar on narrow screens. */
+    top: 32svh;
     min-width: 132px;
     text-align: center;
   }
@@ -1019,7 +1068,7 @@ button.hud-chip:focus-visible {
     animation: scanDrift 9s linear infinite;
   }
 
-  .beacon-pillar::before {
+  .beacon-shaft {
     animation: beaconBreath 2.8s ease-in-out infinite;
   }
 
@@ -1048,13 +1097,133 @@ button.hud-chip:focus-visible {
 }
 
 @keyframes ringPulse {
+  /* Only scale the base ring; its opacity stays driven by --base-strength
+     (set on .beacon-pillar::after) so the fade is never overridden by the
+     pulse. */
   0%,
   100% {
     transform: translateX(-50%) scale(0.96);
-    opacity: 0.42;
   }
   50% {
     transform: translateX(-50%) scale(1.08);
-    opacity: 0.85;
+  }
+}
+
+@keyframes beaconNudge {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+  50% {
+    transform: translate(-50%, -65%) rotate(45deg);
+  }
+}
+
+/* Local-only diagnostic overlay, gated by the `?debug=1` URL flag. Off by
+   default so it never affects the normal experience or the Addendum C visual
+   screenshots. Nothing here is transmitted (NFR-001). */
+.debug-panel {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  top: calc(max(12px, env(safe-area-inset-top)) + 168px);
+  z-index: 8;
+  display: grid;
+  gap: 10px;
+  width: min(46vw, 260px);
+  max-height: calc(100svh - 220px);
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 243, 220, 0.3);
+  border-radius: var(--radius);
+  background: rgba(5, 9, 10, 0.82);
+  backdrop-filter: blur(14px);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.debug-section {
+  display: grid;
+  gap: 4px;
+}
+
+.debug-title {
+  color: var(--aqua);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.debug-panel dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.debug-panel dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.debug-panel dt {
+  color: var(--dim);
+}
+
+.debug-panel dd {
+  margin: 0;
+  color: var(--ink);
+  text-align: right;
+}
+
+.debug-empty {
+  margin: 0;
+  color: var(--dim);
+}
+
+.debug-panel ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debug-panel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.debug-beacon-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-beacon-segment {
+  color: var(--aqua);
+  text-align: right;
+}
+
+.debug-hint {
+  margin-top: 6px;
+  color: var(--dim);
+  font-size: 10px;
+}
+
+@media (min-width: 760px) {
+  .debug-panel {
+    right: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .debug-panel {
+    top: calc(max(12px, env(safe-area-inset-top)) + 226px);
+    width: min(54vw, 240px);
   }
 }
