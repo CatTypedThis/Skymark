@@ -52,6 +52,20 @@ On a primary target device (Android Chrome, portrait, installed PWA mode preferr
 - If the measured frame means the §8.3 `90 - beta` form is inverted, correct the transform (e.g. toward `beta - 90`-style) and update the §8.3 constants and the matching tests. Per the SPEC-004 §8.3 footnote, a sign/neutral correction inside the pure helper and its tests does not require an RFC amendment.
 - Spike passes when, on the primary device, the three recorded poses map to the three intended segments with no manual sign fiddling left as an open question.
 
+> **Spike result (2026-06-24/25) + model supersession:** The spike confirmed the
+> W3C frame: horizon beta ≈ 84, aim-up ≈ 143, aim-down ≈ 36, so `elevation =
+> beta - 90` (the `90 - beta` draft was indeed inverted — it produced "base when
+> looking up"). However, during subsequent on-device iteration the **discrete
+> segment model itself was abandoned** in favor of a continuous world-space-column
+> framing model keyed directly off beta: the base rests at ~30 beta (the
+> look-down pose) and the column is visible (full strength, no fade) up to ~155
+> beta, fading out by ~165. The `base`/`middle`/`upper`/`outside` segments and
+> the `base-visible`/`base-soft`/`base-hidden` CSS classes no longer exist.
+> SPEC-004 §8.3 has been updated to the operative continuous contract; the
+> Addendum C acceptance targets referencing the old classes (§4.1/4.2) are
+> therefore untestable as written and superseded by "the column stays fully
+> visible from ~30 to ~155 beta and pans smoothly."
+
 ### 2.4 Stop / escalate
 
 - Stop and escalate (return for guidance) if the spike cannot be run on any physical Android device, or if `beta` is null/unsupported on the target device. In that case the slice should fall back to the heading-only branch (SPEC-004 §8.3 "Pitch is null or unusable → middle / hidden") as the default, and the pitch-aware states become best-effort.
@@ -120,3 +134,28 @@ git status --short
 ```
 
 Expected result: documentation-only changes; no product code, dependencies, tokens, or configuration.
+
+## 6. Scope Addition: Gated Debug Panel
+
+Status: Added during implementation of SPEC-004 + this addendum.
+
+This slice adds a local-only diagnostic overlay that is outside SPEC-004's stated deliverables (which are optional anchor fields and pure render helpers). It is recorded here as a documented scope addition so the spec set stays honest, and because it directly serves the Addendum A pitch spike and all future device QA.
+
+### 6.1 What was added
+
+- `lib/debug/use-debug-mode.ts` — reads the `?debug=1` URL flag (off by default, re-evaluated on popstate).
+- `components/hud/DebugPanel.tsx` — local-only readout of camera/orientation status, heading, `beta` (pitch), stability, accuracy label, confidence, GPS lat/lon/accuracy, and per-beacon resolved segment. Nothing is transmitted (NFR-001).
+- `app/globals.css` — `.debug-panel` and child classes.
+- Wired into `components/SkyBeaconApp.tsx`, gated by `useDebugMode()`.
+
+### 6.2 Why it is in scope
+
+- It replaces the throwaway temporary readout the Addendum A spike would otherwise need, and remains reusable for every future sensor/frame device question.
+- It is strictly off by default, so it does not affect the normal experience, the demo view, or the Addendum C visual "done" screenshots (which must be taken with the panel off).
+- It adds no dependency, no provider, no backend, no native code, and no persisted state, so it does not trigger any SPEC-004 amendment condition.
+
+### 6.3 When to use it
+
+- Addendum A pitch spike: on (that is its purpose).
+- "Something is off with heading/position/beacon segment": flip on, read, flip off.
+- Daily testing / demo prep / Addendum C screenshots: off (see the real experience).
