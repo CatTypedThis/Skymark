@@ -42,3 +42,9 @@
 - *Manual portrait-mode testing on Android Chrome / installed PWA.* Cannot be run in this environment (no physical device). Replay on a device: install PWA, open portrait, place 3 beacons, exercise drawer/persistence/permission-retry under real sensors. The automated Playwright suite already covers the equivalent flows headlessly on a Pixel 7 viewport.
 - *Pitch direction + neutral model device re-confirm.* The sign convention and `PITCH_NEUTRAL_BETA_DEGREES = 90` are already locked from the Addendum A spike (Android Chrome, 2026-06-24; measured horizon ~84, aim-up ~143, aim-down ~36) and asserted in `beacon-frame.test.ts` "normalizeCameraElevation". This criterion asks for one fresh device re-confirm before release; if a device disagrees, the correction is confined to the pure resolver + its tests per the criterion's own scope limit.
 - *Pitch reliability / heading-only fallback decision.* The fallback is already wired and tested (item 4). The release call on whether measured pitch is "reliable enough" to ship as default is a device sign-off judgement; the fallback is guaranteed available either way without removing the provenance/UI work.
+
+## Resolution
+
+- Commit: `0714023`
+- Resolved: 2026-07-25
+- Note: this is a qualification pass — the only attributable change is this qualification record; there is no separate product-code commit. The two device-dependent criteria remain unchecked (deferred, not code blockers) and are documented above.
