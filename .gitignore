@@ -25,3 +25,8 @@ out/
 coverage/
 playwright-report/
 test-results/
+
+# Local dev artifacts (machine-local)
+.cert/
+.zcode/
+tsconfig.tsbuildinfo

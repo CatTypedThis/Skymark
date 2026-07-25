@@ -1,5 +1,5 @@
 import type { BeaconDraft, BeaconRecord, BeaconSlot, HeadingStability } from "./beacon-types";
-import { generatedBeaconName, normalizeBeaconName, validateBeaconRecord } from "./validation";
+import { generatedBeaconName, isAnchorSource, isBeaconConfidence, normalizeBeaconName, validateBeaconRecord } from "./validation";
 
 export const BEACON_STORAGE_KEY = "sky-beacon:saved-beacons";
 
@@ -11,6 +11,8 @@ type StoredBeaconRecord = {
   latitude?: unknown;
   longitude?: unknown;
   confidence?: unknown;
+  anchorSource?: unknown;
+  anchorConfidence?: unknown;
   placementHeading?: unknown;
   placementDistanceMeters?: unknown;
   locationAccuracyMeters?: unknown;
@@ -55,6 +57,7 @@ function toBeaconRecord(value: unknown): BeaconRecord | null {
   const slot = Number(record.slot);
   const created = typeof record.created === "string" ? record.created : nowTimestamp();
   const updated = typeof record.updated === "string" ? record.updated : created;
+  const confidence = record.confidence as BeaconRecord["confidence"];
   const normalized: BeaconRecord = {
     id: typeof record.id === "string" ? record.id : "",
     slot: slot as BeaconSlot,
@@ -62,7 +65,13 @@ function toBeaconRecord(value: unknown): BeaconRecord | null {
     color: record.color as BeaconRecord["color"],
     latitude: Number(record.latitude),
     longitude: Number(record.longitude),
-    confidence: record.confidence as BeaconRecord["confidence"],
+    confidence,
+    anchorSource: isAnchorSource(record.anchorSource) ? record.anchorSource : "camera",
+    anchorConfidence: isBeaconConfidence(record.anchorConfidence)
+      ? record.anchorConfidence
+      : isBeaconConfidence(confidence)
+        ? confidence
+        : "unknown",
     placementHeading: maybeNumber(record.placementHeading),
     placementDistanceMeters: Number(record.placementDistanceMeters ?? 100),
     locationAccuracyMeters: maybeNumber(record.locationAccuracyMeters),
@@ -114,6 +123,13 @@ function draftRecord(draft: BeaconDraft, slot: BeaconSlot, existing?: BeaconReco
     latitude: draft.latitude,
     longitude: draft.longitude,
     confidence: draft.confidence,
+    anchorSource: draft.anchorSource ?? existing?.anchorSource ?? "camera",
+    anchorConfidence:
+      draft.anchorConfidence ??
+      draft.confidence ??
+      existing?.anchorConfidence ??
+      existing?.confidence ??
+      "unknown",
     placementHeading: draft.placementHeading,
     placementDistanceMeters: draft.placementDistanceMeters,
     locationAccuracyMeters: draft.locationAccuracyMeters,

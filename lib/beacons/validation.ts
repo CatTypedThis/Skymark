@@ -1,10 +1,20 @@
 import { isBeaconColorId } from "./color-palette";
-import type { BeaconConfidence, BeaconRecord, BeaconSlot } from "./beacon-types";
+import type { AnchorSource, BeaconConfidence, BeaconRecord, BeaconSlot } from "./beacon-types";
 
 export const BEACON_LIMIT = 3;
 export const DEFAULT_PLACEMENT_DISTANCE_METERS = 100;
 
 const CONFIDENCE_VALUES = new Set<BeaconConfidence>(["high", "medium", "low", "unknown"]);
+const ANCHOR_SOURCE_VALUES = new Set<AnchorSource>([
+  "camera",
+  "metadata-enriched",
+  "map-cross-referenced",
+  "map-created",
+  "map-confirmed",
+  "map-adjusted",
+  "arcore-geospatial",
+  "visual-refined",
+]);
 
 export function generatedBeaconName(slot: BeaconSlot): string {
   return `Beacon ${String(slot).padStart(2, "0")}`;
@@ -45,6 +55,10 @@ export function isBeaconConfidence(value: unknown): value is BeaconConfidence {
   return typeof value === "string" && CONFIDENCE_VALUES.has(value as BeaconConfidence);
 }
 
+export function isAnchorSource(value: unknown): value is AnchorSource {
+  return typeof value === "string" && ANCHOR_SOURCE_VALUES.has(value as AnchorSource);
+}
+
 export function validateBeaconRecord(record: BeaconRecord): string[] {
   const errors: string[] = [];
 
@@ -55,6 +69,12 @@ export function validateBeaconRecord(record: BeaconRecord): string[] {
   if (!validateLatitude(record.latitude)) errors.push("Beacon latitude is invalid.");
   if (!validateLongitude(record.longitude)) errors.push("Beacon longitude is invalid.");
   if (!isBeaconConfidence(record.confidence)) errors.push("Beacon confidence is invalid.");
+  if (record.anchorSource !== undefined && !isAnchorSource(record.anchorSource)) {
+    errors.push("Beacon anchor source is invalid.");
+  }
+  if (record.anchorConfidence !== undefined && !isBeaconConfidence(record.anchorConfidence)) {
+    errors.push("Beacon anchor confidence is invalid.");
+  }
   if (record.placementHeading !== undefined) {
     if (!Number.isFinite(record.placementHeading) || record.placementHeading < 0 || record.placementHeading >= 360) {
       errors.push("Placement heading must be normalized from 0 to less than 360.");

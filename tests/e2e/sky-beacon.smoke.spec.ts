@@ -99,46 +99,49 @@ async function installCountingCamera(page: Page, result: "granted" | "denied", m
   );
 }
 
-async function installCountingGeolocation(page: Page, result: "granted" | "denied") {
-  await page.evaluate((geoResult) => {
-    window.__geoRequestCount = 0;
-    Object.defineProperty(navigator, "geolocation", {
-      configurable: true,
-      value: {
-        watchPosition: (success: PositionCallback, error?: PositionErrorCallback) => {
-          window.__geoRequestCount = (window.__geoRequestCount ?? 0) + 1;
-          const watchId = window.__geoRequestCount;
-          window.setTimeout(() => {
-            if (geoResult === "granted") {
-              success({
-                coords: {
-                  latitude: 52.3676,
-                  longitude: 4.9041,
-                  accuracy: 12,
-                  altitude: null,
-                  altitudeAccuracy: null,
-                  heading: null,
-                  speed: null,
-                },
-                timestamp: Date.now(),
-              });
-              return;
-            }
+async function installCountingGeolocation(page: Page, result: "granted" | "denied", accuracyMeters = 12) {
+  await page.evaluate(
+    ({ geoResult, accuracy }) => {
+      window.__geoRequestCount = 0;
+      Object.defineProperty(navigator, "geolocation", {
+        configurable: true,
+        value: {
+          watchPosition: (success: PositionCallback, error?: PositionErrorCallback) => {
+            window.__geoRequestCount = (window.__geoRequestCount ?? 0) + 1;
+            const watchId = window.__geoRequestCount;
+            window.setTimeout(() => {
+              if (geoResult === "granted") {
+                success({
+                  coords: {
+                    latitude: 52.3676,
+                    longitude: 4.9041,
+                    accuracy,
+                    altitude: null,
+                    altitudeAccuracy: null,
+                    heading: null,
+                    speed: null,
+                  },
+                  timestamp: Date.now(),
+                });
+                return;
+              }
 
-            error?.({
-              code: 1,
-              message: "GPS denied from status chip",
-              PERMISSION_DENIED: 1,
-              POSITION_UNAVAILABLE: 2,
-              TIMEOUT: 3,
-            } as GeolocationPositionError);
-          }, 0);
-          return watchId;
+              error?.({
+                code: 1,
+                message: "GPS denied from status chip",
+                PERMISSION_DENIED: 1,
+                POSITION_UNAVAILABLE: 2,
+                TIMEOUT: 3,
+              } as GeolocationPositionError);
+            }, 0);
+            return watchId;
+          },
+          clearWatch: () => undefined,
         },
-        clearWatch: () => undefined,
-      },
-    });
-  }, result);
+      });
+    },
+    { geoResult: result, accuracy: accuracyMeters },
+  );
 }
 
 async function installCountingOrientation(page: Page, result: "granted" | "denied") {
@@ -378,3 +381,100 @@ test("keeps non-sensor controls interactive on insecure local HTTP", async ({ pa
   await expect(page.getByText("Camera unsupported")).toHaveCount(0);
   expectNoHydrationErrors(errors);
 });
+
+test("shows compact anchor source/confidence status in the drawer", async ({ page }) => {
+  const errors = collectHydrationErrors(page);
+
+  // Slot 1 is a legacy record with no anchor fields; it should load as a
+  // camera (Approximate) anchor. Slot 2 carries explicit low anchor fields.
+  const legacy = savedBeacon({ id: "legacy-1", slot: 1, name: "Harbor marker" });
+  delete legacy.anchorSource;
+  delete legacy.anchorConfidence;
+  const explicit = savedBeacon({
+    id: "explicit-1",
+    slot: 2,
+    name: "Trail head",
+    anchorSource: "camera",
+    anchorConfidence: "low",
+  });
+  await reloadWithBeacons(page, [legacy, explicit]);
+
+  await page.getByRole("button", { name: "Open beacon drawer" }).click();
+  await expect(page.getByRole("heading", { name: "Beacon drawer" })).toBeVisible();
+
+  // Legacy record normalizes to a camera (Approximate) anchor with confidence
+  // derived from the existing field.
+  await expect(page.getByText("Harbor marker")).toBeVisible();
+  await expect(page.getByText("Approximate / High")).toBeVisible();
+
+  // Explicit low anchor fields render as Approximate / Low.
+  await expect(page.getByText("Trail head")).toBeVisible();
+  await expect(page.getByText("Approximate / Low")).toBeVisible();
+
+  expectNoHydrationErrors(errors);
+});
+
+// Ticket 02 (Phase 4 placement UX): a weak GPS/heading reading must keep
+// confirmation available when a usable GPS fix and heading exist, while the
+// absence of a required reading must block confirmation with recovery guidance.
+// accuracy > 60m drives deriveConfidence() to "low" while still providing a fix.
+const LOW_CONFIDENCE_ACCURACY_METERS = 120;
+
+test("saves an approximate beacon even when GPS confidence is low", async ({ page }) => {
+  const errors = collectHydrationErrors(page);
+  await reloadWithCompletedOnboarding(page);
+
+  await installCountingCamera(page, "granted");
+  await installCountingGeolocation(page, "granted", LOW_CONFIDENCE_ACCURACY_METERS);
+  await installCountingOrientation(page, "granted");
+
+  // Start preview and acquire both required readings.
+  await page.getByRole("button", { name: "Preview beacon placement" }).click();
+  await page.getByRole("button", { name: "Request GPS and compass" }).click();
+  await dispatchCompassReading(page);
+
+  // Low confidence is a warning, not a block: the confirm control stays enabled.
+  await expect(
+    page.getByText("Low confidence — you can still place this approximate beacon, but it may be less precise."),
+  ).toBeVisible();
+  const confirm = page.getByRole("button", { name: "Save beacon" });
+  await expect(confirm).toBeEnabled();
+
+  await confirm.click();
+
+  // The beacon is saved with an approximate camera anchor despite low confidence.
+  await expect(page.getByText("Beacon placed")).toBeVisible();
+  await page.getByRole("button", { name: "Open beacon drawer" }).click();
+  await expect(page.getByText("Approximate / Low")).toBeVisible();
+
+  expectNoHydrationErrors(errors);
+});
+
+test("blocks confirmation and gives recovery guidance when GPS is unavailable", async ({ page }) => {
+  const errors = collectHydrationErrors(page);
+  await reloadWithCompletedOnboarding(page);
+
+  await installCountingCamera(page, "granted");
+  // No geolocation install: GPS stays unavailable.
+  await installCountingOrientation(page, "granted");
+
+  await page.getByRole("button", { name: "Preview beacon placement" }).click();
+  await page.getByRole("button", { name: "Request GPS and compass" }).click();
+  await dispatchCompassReading(page);
+
+  // Missing a required GPS fix keeps confirmation disabled and shows recovery.
+  await expect(page.getByText("A GPS fix and compass heading are required to save")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save beacon" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Confirm beacon placement" })).toBeDisabled();
+
+  // No beacon is saved while required readings are missing.
+  expect(
+    await page.evaluate(
+      (storageKey) => window.localStorage.getItem(storageKey),
+      BEACON_STORAGE_KEY,
+    ),
+  ).toBeNull();
+
+  expectNoHydrationErrors(errors);
+});
+

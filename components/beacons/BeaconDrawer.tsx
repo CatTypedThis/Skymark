@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { Check, Pencil, Radio, Trash2 } from "lucide-react";
 import type { BeaconColorId, BeaconRecord } from "@/lib/beacons/beacon-types";
 import { getBeaconColor } from "@/lib/beacons/color-palette";
+import { anchorStatusLabel } from "@/lib/beacons/anchor-presentation";
 import { Button } from "@/components/ui/button";
 import { ColorPalette } from "./ColorPalette";
 import { Input } from "@/components/ui/input";
@@ -102,6 +103,12 @@ export function BeaconDrawer({
           {beacons.map((beacon) => {
             const color = getBeaconColor(beacon.color);
             const selected = selectedBeaconId === beacon.id;
+            // Records loaded through beacon-service always carry normalized
+            // anchorSource/anchorConfidence (SPEC-004 §8.1); the fallbacks
+            // keep hand-built records honest without coupling the drawer to
+            // the frame helper.
+            const source = beacon.anchorSource ?? "camera";
+            const status = anchorStatusLabel(source, beacon.anchorConfidence ?? beacon.confidence);
             return (
               <article key={beacon.id} className={cn("drawer-row", selected && "selected")}>
                 <button
@@ -117,7 +124,7 @@ export function BeaconDrawer({
                   />
                   <span>
                     <strong>{beacon.name}</strong>
-                    <small>{beacon.confidence}</small>
+                    <small>{status}</small>
                   </span>
                 </button>
                 {replacing ? (
