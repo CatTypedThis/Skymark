@@ -1,135 +1,114 @@
-# Sky Beacon
+# Skymark
 
-Sky Beacon is a mobile-first progressive web app for placing tall, sky-reaching GPS beacons through a live camera interface.
+**Leave a landmark in the world, then find it by looking.**
 
-## MVP
+Skymark is a camera-first spatial wayfinding tool. It lets someone point their phone at a real-world place and raise a luminous marker above it—a landmark that can be found later by looking through the camera instead of searching a map.
 
-- Next.js App Router with TypeScript.
-- Tailwind CSS visual system based on the instrument mockups.
-- PWA manifest, app icon, service worker, and cached app shell.
-- First-run onboarding.
-- Camera feed with desktop fallback.
-- Progressive camera, GPS, and orientation permission flows.
-- 100-meter-ahead beacon placement math.
-- Directional DOM/CSS beacon rendering with off-screen indicators.
-- Five curated beacon colors.
-- Browser-local beacon persistence with no backend service required.
-- Drawer management for selecting, renaming, recoloring, deleting, undoing delete, replacing, and clearing beacons.
+The goal is to make marking a place feel direct and physical. A trail junction, campsite, parked car, meeting point, viewpoint, or distant destination should be something you can mark where you see it and recognize again in the landscape.
 
-## Development
+## The idea
 
-Install dependencies:
+A Skymark is not a flat map pin or a graphic attached to the screen. It has two connected parts:
+
+- a durable base anchored to an intended real-world location;
+- a tall, sky-reaching column that makes that location visible from a distance.
+
+The distinction matters. The base may disappear behind terrain, trees, or buildings, while the upper column can remain visible above the obstruction and continue to guide the user. Skymark should never draw a hidden base as though it were visible or present an approximate position as exact.
+
+The primary experience remains in the camera. Maps may eventually help inspect, confirm, or adjust a marker, but placing and finding one should not require leaving the world in front of you for a conventional map interface.
+
+## What using Skymark should feel like
+
+1. Open the instrument and see the world through the camera.
+2. Aim at the place you want to remember.
+3. Choose a color and raise a Skymark from that location.
+4. Return later and turn toward its bearing.
+5. Follow the visible column—even when its base is out of frame or obscured.
+
+The interface is designed as a focused field instrument: dark, luminous, exploratory, and slightly mysterious without sacrificing clarity or trust.
+
+## Product principles
+
+- **Camera first.** The physical world is the main interface.
+- **Anchored to places.** A marker represents an intended location, not merely a direction or a screen coordinate.
+- **Visible at a distance.** Vertical markers are easier to rediscover in a landscape than ordinary pins.
+- **Honest about certainty.** Every anchor should communicate its source and confidence. Approximate data must look approximate.
+- **Useful before it is perfect.** The product should degrade gracefully when sensors or advanced spatial capabilities are unavailable.
+- **Focused and local first.** A small set of meaningful markers is more useful than a crowded overlay. The prototype needs no account or cloud service.
+
+## The current prototype
+
+The repository contains a mobile-first Next.js PWA that proves the core interaction with browser capabilities available today.
+
+It currently:
+
+- opens into a live camera instrument;
+- requests camera, location, and orientation access progressively;
+- previews and places a marker approximately 100 metres ahead using GPS and compass heading;
+- renders sky-reaching markers with pitch-aware framing and off-screen guidance;
+- records anchor provenance and confidence without claiming false precision;
+- saves up to three named, coloured markers in the browser;
+- supports selection, renaming, recolouring, replacement, deletion, undo, and clear-all;
+- works without a backend, account, or runtime service.
+
+The PWA is an intentional product-learning and demonstration surface, not the final anchoring system. Browser GPS and compass readings can establish a useful approximate direction, but they cannot reliably prove an exact ground point, depth, line of sight, or obstruction.
+
+> The application and older product documents currently use the working name **Sky Beacon**. **Skymark** describes the product vision represented by this repository.
+
+## Where it is going
+
+The long-term objective is accurate, durable camera-based placement and recovery of markers at intended real-world locations.
+
+The current direction is:
+
+1. Keep refining the PWA until it communicates the full spatial idea convincingly while remaining honest about browser limitations.
+2. Maintain one shared anchor model that records where a marker came from, how confident it is, and how it should be rendered.
+3. Validate a true geospatial AR path—currently ARCore Geospatial is the leading candidate—for precise camera-based anchoring.
+4. Add map or place metadata only where it improves context, confirmation, or adjustment without replacing the camera-first flow.
+5. Explore close-range visual refinement and obstruction-aware rendering only when the available evidence is reliable enough to improve, rather than merely imply, accuracy.
+
+This is not intended to become a conventional turn-by-turn navigation app. Skymark is about spatial memory and visual orientation: giving people a persistent landmark in the world when a map pin is too abstract.
+
+## Technology
+
+- Next.js App Router, React, and TypeScript
+- Tailwind CSS
+- browser Camera, Geolocation, and Device Orientation APIs
+- local-first persistence with `localStorage`
+- installable PWA manifest and service worker
+- Vitest and Playwright
+
+## Run locally
+
+Install dependencies and start the development server:
 
 ```powershell
 npm install
-```
-
-Run the app:
-
-```powershell
 npm run dev
 ```
 
-Run for phone testing on the same Wi-Fi:
+For layout and non-sensor testing from a phone on the same Wi-Fi:
 
 ```powershell
 npm run dev:lan
 ```
 
-The LAN script starts Next on port 3001, discovers the computer's local IPv4 addresses, and automatically allows those hosts for Next.js development resources. Then open one of the printed Wi-Fi URLs from the phone:
+Open one of the printed network URLs on the phone. Camera, location, and orientation APIs require a secure context on mobile browsers, so full device testing requires a trusted HTTPS URL. A secure tunnel or an HTTPS deployment such as Vercel is the simplest option; the plain LAN URL is primarily useful for UI testing.
 
-```text
-http://<your-wifi-ip>:3001
-```
-
-The LAN HTTP URL is useful for layout, beacon drawer, and non-sensor flows. Camera, GPS, and compass APIs require a secure context, so plain `http://<your-wifi-ip>:3001` will show HTTPS guidance instead of opening the camera unless the browser has been explicitly configured to trust that development origin.
-
-You can inspect the computed hosts without starting the dev server:
-
-```powershell
-node scripts/dev-lan.mjs --print-origins
-```
-
-Use the network URL printed by `npm run dev:lan`, or run `ipconfig` and use the IPv4 address for the active Wi-Fi adapter. If you use a custom hostname, add it to `NEXT_ALLOWED_DEV_ORIGINS` in `.env.local` as a comma-separated value, then restart the dev server.
-
-If `npm run dev:lan` reports that port 3001 is already in use, stop the old dev server first. A stale server can keep serving an older Next config to the phone even after the code has been fixed.
-
-If the page loads but buttons do not respond, clear the phone browser's site data for the LAN URL, restart `npm run dev:lan`, and check the dev server log for blocked-origin warnings. If the page does not load, verify the phone is on the same Wi-Fi network, disable phone VPN/private relay/cellular fallback, and allow Node/Next.js through Windows Firewall for private networks. The computer hostname can work on some networks, but the numeric Wi-Fi IP is usually more reliable.
-
-### HTTPS Requirements for Camera and Sensors
-
-**Camera, GPS, and device orientation access require HTTPS or another browser-trusted secure context.** This is a browser security requirement that cannot be bypassed from app code. iOS Safari requires HTTPS; Android Chrome can use an insecure-origin exception for local development only.
-
-For full sensor testing during development, use one of these options:
-
-1. **Use ngrok or similar HTTPS tunneling** (Recommended):
-   ```powershell
-   npm install -g ngrok
-   ngrok http 3001
-   ```
-   Then use the provided HTTPS URL on your iOS device while `npm run dev:lan` is running. Use port 3000 instead if you are running `npm run dev`.
-
-2. **Deploy to Vercel** for testing:
-   - Push your code to GitHub
-   - Deploy to Vercel (free tier provides HTTPS)
-   - Test on iOS Safari using the Vercel HTTPS URL
-
-3. **Use local HTTPS with self-signed certificates**:
-   - Set up local HTTPS development with tools like `mkcert` or `local-ssl-proxy`
-   - Note: iOS may still show certificate warnings
-
-For Android Chrome testing with HTTP, you can enable insecure origins in `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, add the exact `http://<your-wifi-ip>:3001` origin, relaunch Chrome, and reopen the app. This does not work on iOS Safari.
-
-### iOS Safari Testing Checklist
-
-When testing on iOS Safari, verify:
-
-- [ ] Camera permission is granted and camera feed works
-- [ ] GPS location permission is granted and location is accurate
-- [ ] Device orientation/compass permission is granted
-- [ ] Compass heading provides accurate readings
-- [ ] Complete beacon placement workflow works end-to-end
-- [ ] App installs as PWA from iOS "Add to Home Screen"
-- [ ] All sensor errors show helpful iOS-specific messages
-
-### Android Chrome Testing
-
-For Android Chrome development testing, you can enable insecure origins:
-
-Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, enable it, add the `http://<your-wifi-ip>:3001` URL, relaunch Chrome, and then reopen the app.
-
-For production or normal demos, use HTTPS.
-
-Run validation:
+## Validate
 
 ```powershell
 npm run lint
 npm run test
+npm run test:e2e
 npm run build
 ```
 
-## Deployment
+## Product and engineering documents
 
-The app is ready to deploy to Vercel as a standard Next.js project. It does not require a database, backend process, persistent server disk, or runtime environment variables for beacon storage. Saved beacons live in each browser's `localStorage`, so they remain device-local.
-
-```powershell
-npm run build
-```
-
-Use Vercel's default install and build settings for Next.js.
-
-**Important for iOS Users**: Vercel provides automatic HTTPS, which is required for iOS Safari to access camera, GPS, and compass sensors.
-
-## Platform Compatibility
-
-- **iOS Safari 13+**: Full support with HTTPS required
-- **Android Chrome**: Full support with optional HTTP for development
-- **Desktop browsers**: Simulated compass, limited camera support
-
-## Source Documents
-
-- `PRD.md` - product requirements.
-- `SRS.md` - software requirements.
-- `technical-specification.md` - implementation architecture.
-- `UI.html` - high-definition visual mockups.
-- `assets/` - visual assets used by the mockups.
+- [`PRD.md`](./PRD.md) — product requirements and longer-term direction
+- [`SRS.md`](./SRS.md) — detailed software requirements
+- [`technical-specification.md`](./technical-specification.md) — implementation architecture
+- [`USER_STORIES.md`](./USER_STORIES.md) — user stories and acceptance criteria
+- [`specs/RFC-map-anchored-beacon-system.md`](./specs/RFC-map-anchored-beacon-system.md) — post-MVP anchoring strategy
+- [`UI.html`](./UI.html) — high-fidelity interface mockups
