@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  HEADING_DEADBAND_DEGREES,
   HEADING_OUTLIER_DOWNWEIGHT,
   HEADING_OUTLIER_THRESHOLD_DEGREES,
   HEADING_SMOOTHING_WEIGHT,
@@ -120,6 +121,51 @@ describe("advanceHeadingFilter — outlier rejection", () => {
   it("normalizes raw headings outside [0, 360)", () => {
     const { heading } = advanceHeadingFilter(null, { heading: 720 + 45, absolute: true });
     expect(heading).toBe(45);
+  });
+});
+
+describe("advanceHeadingFilter — deadband absorbs sub-threshold noise", () => {
+  it("holds the estimate unchanged when the sample is within the deadband", () => {
+    // Prime at 270, then feed a stream of absolute samples within ±0.8 deg
+    // (the measured handheld magnetometer noise floor, all under the 1.5 deg
+    // deadband). The published heading must not move at all — this is the
+    // residual-slide fix.
+    let acc = advanceHeadingFilter(null, { heading: 270, absolute: true });
+    const startHeading = acc.heading;
+
+    for (const jitter of [270.4, 269.7, 270.6, 270.2, 270.8, 269.4, 270.7]) {
+      acc = advanceHeadingFilter(acc.state, { heading: jitter, absolute: true });
+      expect(acc.heading).toBe(startHeading);
+    }
+  });
+
+  it("still passes through a real turn whose delta exceeds the deadband", () => {
+    // A 5-degree turn is well above the 1.5-degree deadband but well below the
+    // outlier threshold, so it must move the estimate via normal smoothing.
+    let acc = advanceHeadingFilter(null, { heading: 0, absolute: true });
+    acc = advanceHeadingFilter(acc.state, { heading: 5, absolute: true });
+    expect(acc.heading).not.toBe(0);
+    expect(Math.abs(((acc.heading ?? 0) - 0 + 540) % 360 - 180)).toBeGreaterThan(0.1);
+  });
+
+  it("does not flag instability for a sustained still hold (deadband resets held counter)", () => {
+    // A still phone is trustworthy, not unstable. A long run of deadband-held
+    // samples must keep consecutiveHeld at 0, so the hook reports "stable".
+    let acc = advanceHeadingFilter(null, { heading: 180, absolute: true });
+    for (let i = 0; i < 20; i += 1) {
+      acc = advanceHeadingFilter(acc.state, { heading: 180.4, absolute: true });
+    }
+    expect(acc.state.consecutiveHeld).toBe(0);
+    expect(acc.outlier).toBe(false);
+  });
+
+  it("treats the deadband edge correctly: at-threshold is held, just-above moves", () => {
+    // Exactly at the threshold (inclusive) is held; one tick above moves.
+    const acc = advanceHeadingFilter(null, { heading: 100, absolute: true });
+    const at = advanceHeadingFilter(acc.state, { heading: 100 + HEADING_DEADBAND_DEGREES, absolute: true });
+    expect(at.heading).toBe(100);
+    const above = advanceHeadingFilter(acc.state, { heading: 100 + HEADING_DEADBAND_DEGREES + 0.1, absolute: true });
+    expect(above.heading).not.toBe(100);
   });
 });
 

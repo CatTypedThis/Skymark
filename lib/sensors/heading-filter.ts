@@ -45,6 +45,16 @@ export interface HeadingSample {
 export const HEADING_SMOOTHING_WEIGHT = 0.12;
 export const HEADING_OUTLIER_THRESHOLD_DEGREES = 45;
 export const HEADING_OUTLIER_DOWNWEIGHT = 0.05;
+/**
+ * Deadband around the current estimate within which sub-threshold noise does
+ * not move the published heading. Sized to absorb typical handheld
+ * magnetometer jitter (measured ~±0.8 deg peak-to-peak on the target Android
+ * device) without perceptibly lagging real turns: a deliberate ~30 deg/sec
+ * rotation breaks the band in ~50 ms at 60 Hz sampling. Inside the band the
+ * estimate is frozen (truly still = truly still); outside it, normal smoothing
+ * and outlier rejection apply unchanged.
+ */
+export const HEADING_DEADBAND_DEGREES = 1.5;
 
 /**
  * Filter state carried between samples. `null` means "no accepted reading
@@ -123,6 +133,22 @@ export function advanceHeadingFilter(
 
   const delta = Math.abs(angularDifference(base.estimate, next));
   const isOutlier = delta > HEADING_OUTLIER_THRESHOLD_DEGREES;
+
+  // Deadband: sub-threshold noise (typical handheld magnetometer jitter) does
+  // not move the estimate. This freezes the heading during stillness without
+  // affecting real turns, which produce deltas far above the band. Unlike an
+  // outlier or a rejected relative reading, a deadband hold is trustworthy
+  // (the compass agrees with the estimate), so it does not increment the
+  // instability counter — only resets it, like any normal sample.
+  if (!isOutlier && delta <= HEADING_DEADBAND_DEGREES) {
+    return {
+      state: { ...base, consecutiveHeld: 0 },
+      heading: base.estimate,
+      outlier: false,
+      rejected: false,
+    };
+  }
+
   const weight = isOutlier ? HEADING_OUTLIER_DOWNWEIGHT : HEADING_SMOOTHING_WEIGHT;
   const estimate = smoothHeading(base.estimate, next, weight);
 
