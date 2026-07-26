@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { detectPlatform } from "@/lib/utils/platform";
 import { usePlatform } from "@/lib/utils/use-platform";
+import { haversineDistanceMeters } from "@/lib/geospatial/distance";
 
 export interface LocationFix {
   latitude: number;
@@ -17,12 +18,6 @@ export const LOCATION_ACQUISITION_TIMEOUT_MS = 15000;
 export const LOCATION_STABILITY_MIN_MOVEMENT_METERS = 8;
 export const LOCATION_STABILITY_MAX_ACCURACY_METERS = 35;
 
-const EARTH_RADIUS_METERS = 6_371_000;
-
-function toRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}
-
 function accuracyMeters(fix: LocationFix): number {
   return typeof fix.accuracy === "number" && Number.isFinite(fix.accuracy) && fix.accuracy > 0
     ? fix.accuracy
@@ -34,16 +29,12 @@ export function shouldLocationRequestTimeout(fix: LocationFix | null, requestSta
 }
 
 export function distanceBetweenLocationFixes(from: LocationFix, to: LocationFix): number {
-  const fromLatitude = toRadians(from.latitude);
-  const toLatitude = toRadians(to.latitude);
-  const deltaLatitude = toRadians(to.latitude - from.latitude);
-  const deltaLongitude = toRadians(to.longitude - from.longitude);
-
-  const haversine =
-    Math.sin(deltaLatitude / 2) ** 2 +
-    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(deltaLongitude / 2) ** 2;
-
-  return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  return haversineDistanceMeters(
+    from.latitude,
+    from.longitude,
+    to.latitude,
+    to.longitude,
+  );
 }
 
 export function stabilizeLocationFix(current: LocationFix | null, next: LocationFix): LocationFix {

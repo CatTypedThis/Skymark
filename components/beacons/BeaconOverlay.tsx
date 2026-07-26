@@ -2,7 +2,7 @@
 
 import type { BeaconColorId, BeaconConfidence, BeaconRecord } from "@/lib/beacons/beacon-types";
 import type { LocationFix } from "@/lib/sensors/use-geolocation";
-import { bearingBetween } from "@/lib/geospatial/bearing";
+import { resolveBeaconRenderBearing } from "@/lib/geospatial/beacon-render-bearing";
 import { mapBearingToOverlayX } from "@/lib/geospatial/overlay-position";
 import { resolveBeaconFrame } from "@/lib/geospatial/beacon-frame";
 import { resolveRenderableAnchor } from "@/lib/beacons/renderable-anchor";
@@ -100,12 +100,7 @@ export function BeaconOverlay({
   // the work in the render loop.
   const prepared = canRenderDirectional
     ? beacons.map((beacon) => {
-        const bearing = bearingBetween(
-          location.latitude,
-          location.longitude,
-          beacon.latitude,
-          beacon.longitude,
-        );
+        const bearing = resolveBeaconRenderBearing(beacon, { location });
         const overlay = mapBearingToOverlayX(bearing, heading);
         const renderable = resolveRenderableAnchor(beacon, overlay.visible, pitch);
         const guidance = resolveOffscreenGuidance(
